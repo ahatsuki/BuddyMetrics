@@ -1,0 +1,4169 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedstrijd Statistieken</title>
+    <meta name="description" content="Een app voor het bijhouden van wedstrijdstatistieken voor verschillende sporten">
+    <meta name="theme-color" content="#1e88e5">
+    
+    <!-- PWA manifest en favicon -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="shortcut icon" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- iOS PWA ondersteuning -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wedstrijd Stats">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --primary-light: #e3f2fd;
+            --primary-dark: #0d47a1;
+            --success-color: #4caf50;
+            --success-light: #e8f5e9;
+            --warning-color: #ff9800;
+            --warning-light: #fff3e0;
+            --danger-color: #f44336;
+            --danger-light: #ffebee;
+            --gold: #ffd700;
+            --silver: #c0c0c0;
+            --bronze: #cd7f32;
+            --gray-light: #f5f5f5;
+            --gray: #9e9e9e;
+            --white: #ffffff;
+            --black: #212121;
+            --shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 5px 8px rgba(0, 0, 0, 0.1);
+            --border-radius: 4px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: var(--black);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        /* Header en management sectie */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            background-color: var(--primary-color);
+            padding: 15px;
+            color: white;
+            text-align: center;
+            box-shadow: var(--shadow);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-management {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px 25px;
+            box-shadow: var(--shadow);
+        }
+
+        /* Container aanpassing voor fixed elementen */
+        .container {
+            padding-top: 140px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-left: 15px;
+            padding-right: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            height: auto;
+            box-sizing: border-box;
+        }
+
+        /* Management sectie grid aanpassing */
+        .section-management .actions-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 10px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.7rem;
+            letter-spacing: 1px;
+        }
+
+        header button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            border: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        header button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        header button:active {
+            transform: translateY(0);
+        }
+
+        section {
+            padding: 11px;
+            margin-bottom: 11px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            height: auto;
+            overflow: visible;
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid var(--primary-light);
+            font-size: 1.2rem;
+        }
+
+        /* Specifieke grid-posities voor secties */
+        .section-add-player {
+            grid-column: 1 / 2;
+            grid-row: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .section-teams {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-players {
+            grid-column: 1 / 2;
+            grid-row: 2;
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .team-container {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 11px;
+        }
+
+        .team {
+            flex: 1;
+            background: white;
+            padding: 8px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .team h3 {
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 2px solid var(--primary-light);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .team h3 .team-count {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .team-players {
+            min-height: 112px;
+            max-height: none;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow-y: visible;
+        }
+
+        .team-player {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background: linear-gradient(145deg, var(--white), var(--gray-light));
+            border-radius: var(--border-radius);
+            font-size: 12px;
+            margin-bottom: 3px;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .team-player:hover {
+            transform: translateX(5px);
+            background: linear-gradient(145deg, var(--primary-light), var(--white));
+            border-left-color: var(--success-color);
+        }
+
+        .team-player.modified {
+            background: linear-gradient(145deg, var(--success-light), var(--white));
+            border-left-color: var(--success-color);
+        }
+
+        .btn-remove-player {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 6px;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove-player:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .team-controls {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 11px;
+            padding: 6px;
+            background-color: var(--gray-light);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .team-controls .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 75px;
+        }
+
+        .team-controls .btn::before {
+            font-size: 24px;
+        }
+
+        .team-controls .btn-success {
+            background: linear-gradient(145deg, var(--success-color), #2e7d32);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .team-controls .btn-success:first-child::before {
+            content: "🏆";
+        }
+
+        .team-controls .btn-success:nth-child(2)::before {
+            content: "🏆";
+        }
+
+        .team-controls .btn-warning {
+            background: linear-gradient(145deg, var(--warning-color), #f57c00);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .team-controls .btn-warning::before {
+            content: "🔄";
+        }
+
+        .team-controls .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .team-controls .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .team-controls .btn-success:hover {
+            background: linear-gradient(145deg, #2e7d32, var(--success-color));
+        }
+
+        .team-controls .btn-warning:hover {
+            background: linear-gradient(145deg, #f57c00, var(--warning-color));
+        }
+
+        .player-select {
+            width: 100%;
+            padding: 6px 9px;
+            margin-bottom: 6px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--gray);
+            font-size: 13px;
+            background-color: var(--white);
+            color: var(--black);
+            transition: all 0.3s ease;
+        }
+
+        .player-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.1);
+            outline: none;
+        }
+
+        /* Top 3 laatkomers en winnaars layout */
+        .section-top3-late {
+            grid-column: 2 / 3;
+            margin-top: 10px;
+        }
+
+        .section-winners {
+            grid-column: 2 / 3;
+            margin-top: 10px;
+        }
+
+        .podium {
+            height: 195px;
+            margin: 30px 0;
+        }
+
+        .winners-podium {
+            margin: 20px 0 10px 0;
+        }
+
+        .winners-extra {
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .position-extra {
+            padding: 10px;
+            min-width: 120px;
+        }
+
+        .export-buttons {
+            margin-top: 10px;
+        }
+
+        /* Aangepaste hoogtes voor podium */
+        .first-place .pedestal {
+            height: 180px;
+        }
+
+        .second-place .pedestal {
+            height: 140px;
+        }
+
+        .third-place .pedestal {
+            height: 100px;
+        }
+
+        .player-avatar {
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+            margin-bottom: 6px;
+            margin-top: -11px;
+        }
+
+        .player-info {
+            padding: 6px;
+        }
+
+        .player-name {
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .player-stats {
+            font-size: 11px;
+        }
+
+        /* Sectie headers - aangepaste marges */
+        section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        /* Management sectie */
+        .section-management {
+            position: sticky;
+            top: 75px; /* Hoogte van de header + wat ruimte */
+            z-index: 999;
+            margin-bottom: 15px;
+            background-color: #f0f2f5;
+            grid-column: 1 / -1;
+            padding: 15px 25px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .action-btn {
+            padding: 6px 10px;
+            border-radius: var(--border-radius);
+            font-size: 11px;
+            font-weight: 600;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+
+        /* Specifieke kleuren voor management knoppen */
+        .action-btn[onclick*="saveData"] { 
+            background-color: var(--success-color); 
+        }
+        .action-btn[onclick*="loadDataFromFile"] { 
+            background-color: var(--primary-color);
+        }
+        .action-btn[onclick*="undoLast"],
+        .action-btn[onclick*="redoLast"] { 
+            background-color: var(--warning-color); 
+        }
+        .action-btn[onclick*="resetStats"] { 
+            background-color: #ff4444; 
+        }
+        .action-btn[onclick*="resetPlayers"] { 
+            background-color: var(--danger-color); 
+        }
+        .action-btn[onclick*="exportCharts"] { 
+            background-color: #2196f3; 
+        }
+        .action-btn[onclick*="showHelp"] { 
+            background-color: #9c27b0; 
+        }
+
+        /* Hover effecten voor knoppen */
+        .action-btn[onclick*="saveData"]:hover { 
+            background-color: #2e7d32;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="loadDataFromFile"]:hover { 
+            background-color: #1565c0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="undoLast"]:hover,
+        .action-btn[onclick*="redoLast"]:hover { 
+            background-color: #ef6c00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="resetStats"]:hover { 
+            background-color: #e65100;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="resetPlayers"]:hover { 
+            background-color: #c62828;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="exportCharts"]:hover { 
+            background-color: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .action-btn[onclick*="showHelp"]:hover { 
+            background-color: #7b1fa2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Export container voor grafieken */
+        .export-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin: 20px auto;
+            max-width: 1400px;
+        }
+
+        .export-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .export-section {
+            padding: 15px;
+            background-color: var(--gray-light);
+            border-radius: var(--border-radius);
+        }
+
+        .player-of-month {
+            grid-column: 1 / -1;
+            background: linear-gradient(145deg, var(--primary-light), white);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            border: 2px solid var(--primary-color);
+        }
+
+        .player-of-month h3 {
+            color: var(--primary-dark);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .player-of-month-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .player-of-month-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .player-of-month-info {
+            text-align: left;
+        }
+
+        .player-of-month-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+
+        .player-of-month-stats {
+            font-size: 1rem;
+            color: var(--gray);
+        }
+
+        .player-of-month-achievement {
+            display: inline-block;
+            background: var(--success-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .streaks-export-container {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .streak-export-section {
+            background-color: var(--gray-light);
+            border-radius: var(--border-radius);
+            padding: 15px;
+        }
+
+        .streak-export-section h3 {
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-light);
+            font-size: 1.1rem;
+        }
+
+        .streak-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .streak-export-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        .streak-export-item .streak-name {
+            font-weight: bold;
+        }
+
+        .streak-export-item .streak-value {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .section-stats {
+            grid-column: 1 / -1;
+        }
+
+        .chart-wrapper {
+            min-height: 300px;
+            margin: 0;
+            padding: 10px;
+        }
+
+        .winners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .winner-tile {
+            padding: 10px;
+            gap: 6px;
+        }
+
+        .winner-avatar {
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+            margin-bottom: 8px;
+            margin-top: -20px;
+        }
+
+        .winner-name {
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .winner-stats {
+            font-size: 12px;
+        }
+
+        /* Speler toevoegen form - compactere layout */
+        .add-player-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            max-width: 450px;
+        }
+
+        .add-player-form input[type="text"] {
+            padding: 8px 12px;
+            font-size: 14px;
+            height: 36px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .add-player-form .btn {
+            height: 36px;
+            padding: 0 16px;
+            font-size: 14px;
+            min-width: 90px;
+        }
+
+        /* Verberg footer op hoofdscherm */
+        footer {
+            display: none;
+        }
+
+        /* Aanpassing voor kleinere schermen */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-top3-late,
+            .section-winners {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-column: 1 / -1;
+                height: auto;
+                overflow: auto;
+                padding-top: 180px;
+            }
+
+            section {
+                grid-column: 1 / -1;
+                max-height: none;
+            }
+
+            .section-management {
+                position: fixed;
+                padding: 10px;
+            }
+
+            .section-management .actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+        }
+
+        /* Table container - minder ruimte bovenaan */
+        .table-container {
+            margin-top: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+            font-size: 14px;
+            table-layout: fixed;
+        }
+
+        th {
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
+            padding: 9px 11px;
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+            user-select: none;
+            z-index: 2;
+        }
+
+        th .resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: col-resize;
+            user-select: none;
+            touch-action: none;
+            z-index: 3;
+        }
+
+        th .resizer:hover,
+        th .resizing {
+            background: rgba(255, 255, 255, 0.4);
+            width: 8px;
+        }
+
+        th .resizer::after {
+            content: "";
+            position: absolute;
+            right: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 20px;
+            width: 2px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            vertical-align: top;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+        }
+
+        /* Verwijder vaste kolom breedtes */
+        th:nth-child(1), td:nth-child(1) { min-width: 30px; }  /* # kolom */
+        th:nth-child(2), td:nth-child(2) { min-width: 150px; }  /* Naam kolom */
+        th:nth-child(3), td:nth-child(3) { min-width: 75px; }  /* Aanwezigheid kolom */
+        th:nth-child(4), td:nth-child(4) { min-width: 75px; }  /* Te laat kolom */
+        th:nth-child(5), td:nth-child(5) { min-width: 75px; }  /* Overwinningen kolom */
+        th:nth-child(6), td:nth-child(6) { min-width: 75px; }  /* Verlies kolom */
+
+        tr:nth-child(even) {
+            background-color: var(--gray-light);
+        }
+
+        tr:hover {
+            background-color: var(--primary-light);
+        }
+
+        /* Controls in table */
+        .controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: nowrap;
+        }
+
+        .btn-circle {
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-plus {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-minus {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-edit {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Hover effecten */
+        .btn-circle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-circle:active {
+            transform: translateY(0);
+        }
+
+        .btn-plus:hover, .btn-success:hover {
+            background-color: #388e3c;
+        }
+
+        .btn-minus:hover, .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+
+        .btn-warning:hover {
+            background-color: #f57c00;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Disabled state */
+        .btn-circle[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Podium for top 3 laatkomers - updated colors */
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 260px;
+            margin: 40px 0;
+            position: relative;
+        }
+
+        .position {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .position:hover {
+            transform: translateY(-10px);
+        }
+
+        .pedestal {
+            width: 100px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pedestal::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(to right, rgba(255,255,255,0.3), rgba(255,255,255,0.7), rgba(255,255,255,0.3));
+        }
+
+        .player-avatar {
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+            margin-bottom: 6px;
+            margin-top: -11px;
+        }
+
+        .position:hover .player-avatar {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .player-info {
+            padding: 6px;
+        }
+
+        .player-name {
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .player-stats {
+            font-size: 11px;
+        }
+
+        /* Aangepaste hoogtes voor podium */
+        .first-place .pedestal {
+            height: 180px;
+            background-color: var(--danger-color);
+            z-index: 3;
+        }
+
+        .first-place .player-avatar {
+            background-color: var(--danger-light);
+            color: var(--black);
+            border-color: var(--danger-color);
+        }
+
+        .second-place .pedestal {
+            height: 140px;
+            background-color: var(--warning-color);
+            z-index: 2;
+        }
+
+        .second-place .player-avatar {
+            background-color: var(--warning-light);
+            color: var(--black);
+            border-color: var(--warning-color);
+        }
+
+        .third-place .pedestal {
+            height: 100px;
+            background-color: #ffeb3b;
+            z-index: 1;
+        }
+
+        .third-place .player-avatar {
+            background-color: #fffde7;
+            color: var(--black);
+            border-color: #ffeb3b;
+        }
+
+        .position-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: white;
+            color: var(--black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: var(--shadow);
+            z-index: 4;
+        }
+
+        /* Top Winners section */
+        .winners-container {
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .winner-card {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+            background: white;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .winner-position {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .winner-info {
+            flex: 1;
+        }
+
+        .winner-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .winner-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .winner-percentage {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .winner-wins {
+            color: var(--gray);
+        }
+
+        .winner-position.gold { background: var(--gold); }
+        .winner-position.silver { background: var(--silver); }
+        .winner-position.bronze { background: var(--bronze); }
+
+        /* Winner card ribbons for top 3 */
+        .winner-card.top-1::before,
+        .winner-card.top-2::before,
+        .winner-card.top-3::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            background-color: var(--gold);
+            transform: rotate(45deg) translate(15px, -20px);
+        }
+
+        .winner-card.top-2::before {
+            background-color: var(--silver);
+        }
+
+        .winner-card.top-3::before {
+            background-color: var(--bronze);
+        }
+
+        /* Win percentage indicators */
+        .win-percentage-text {
+            transition: color 0.3s;
+        }
+
+        .win-percentage-good {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .win-percentage-medium {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .win-percentage-bad {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        /* Actions section */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .action-btn {
+            padding: 11px 15px;
+            border-radius: var(--border-radius);
+            font-size: 12px;
+            font-weight: 600;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            min-width: 350px;
+            animation: modalEnter 0.3s ease-out;
+        }
+
+        @keyframes modalEnter {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: var(--primary-dark);
+            font-size: 16px;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        /* Notification bubble */
+        .unsaved-changes {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 6px 11px;
+            border-radius: 15px;
+            font-weight: bold;
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+            }
+        }
+
+        /* Last saved info */
+        .last-saved {
+            text-align: center;
+            color: var(--gray);
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Tooltips */
+        [data-tooltip] {
+            position: relative;
+            cursor: help;
+        }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--black);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 10;
+            margin-bottom: 5px;
+        }
+
+        /* Table styles update */
+        td {
+            vertical-align: top;
+            min-width: 100px;
+        }
+
+        tr {
+            cursor: default;
+            position: relative;
+        }
+
+        tr.dragging {
+            opacity: 0.5;
+            background-color: var(--primary-light);
+        }
+
+        tr.drop-target {
+            position: relative;
+        }
+
+        tr.drop-target::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+            z-index: 1;
+        }
+
+        tr.drop-target-top::before {
+            top: 0;
+        }
+
+        tr.drop-target-bottom::before {
+            bottom: 0;
+        }
+
+        .btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Statistieken Overzicht styles */
+        .stats-overview {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+        }
+
+        .stats-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stats-date {
+            color: var(--gray);
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        @media print {
+            body {
+                display: none;
+            }
+        }
+
+        /* Top Winners Grid Layout */
+        .winners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .winner-tile {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+                flex-direction: column;
+                align-items: center;
+            gap: 10px;
+        }
+
+        .winner-tile:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .winner-position {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: var(--shadow);
+        }
+
+        .winner-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+            border: 3px solid var(--primary-color);
+        }
+
+        .winner-avatar.gold { background: #fff5e6; border-color: var(--gold); color: #b8860b; }
+        .winner-avatar.silver { background: #f5f5f5; border-color: var(--silver); color: #808080; }
+        .winner-avatar.bronze { background: #fff0e6; border-color: var(--bronze); color: #8b4513; }
+
+        .winner-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        .winner-stats {
+            font-size: 14px;
+            color: var(--gray);
+            display: flex;
+                flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .winner-percentage {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        .winner-wins {
+            background: var(--success-light);
+            color: var(--success-color);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Aangepaste stijlen voor winnaars podium */
+        .winners-podium {
+            margin: 40px 0 20px 0;
+        }
+
+        .winners-podium .first-place .pedestal {
+            background-color: var(--gold);
+            height: 180px;
+        }
+
+        .winners-podium .second-place .pedestal {
+            background-color: var(--silver);
+            height: 140px;
+        }
+
+        .winners-podium .third-place .pedestal {
+            background-color: var(--bronze);
+            height: 100px;
+        }
+
+        .winners-podium .player-avatar.gold {
+            background-color: #fff5e6;
+            border-color: var(--gold);
+            color: #b8860b;
+        }
+
+        .winners-podium .player-avatar.silver {
+            background-color: #f5f5f5;
+            border-color: var(--silver);
+            color: #808080;
+        }
+
+        .winners-podium .player-avatar.bronze {
+            background-color: #fff0e6;
+            border-color: var(--bronze);
+            color: #8b4513;
+        }
+
+        .winners-extra {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .position-extra {
+            background-color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+                text-align: center;
+            position: relative;
+            min-width: 150px;
+        }
+
+        .position-extra .position-number {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .position-extra .player-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .position-extra .player-stats {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        /* Highlight styles voor gewijzigde items */
+        tr.modified {
+            background-color: var(--primary-light) !important;
+        }
+
+        tr.modified:nth-child(even) {
+            background-color: #e3f2fd !important;
+        }
+
+        tr.modified td {
+            position: relative;
+        }
+
+        td.modified-value {
+            color: var(--success-color);
+            font-weight: bold;
+            animation: pulseText 2s infinite;
+        }
+
+        @keyframes pulseText {
+            0% { color: var(--success-color); }
+            50% { color: var(--primary-color); }
+            100% { color: var(--success-color); }
+        }
+
+        .modified-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Team styles voor gewijzigde spelers */
+        .team-player.modified {
+            background-color: var(--primary-light);
+            border-left: 4px solid var(--success-color);
+            padding-left: 12px;
+            font-weight: bold;
+        }
+
+        .pending-result {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding-left: 12px;
+        }
+
+        .pending-result::after {
+            content: '⚠️ Geen resultaat';
+            font-size: 12px;
+            color: #856404;
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+
+        /* Nieuwe stijl voor spelers zonder wedstrijdresultaat */
+        .needs-result td {
+            background-color: var(--warning-light);
+            position: relative;
+        }
+
+        .needs-result:hover td {
+            background-color: #ffe0b2;
+            cursor: pointer;
+        }
+
+        .needs-result td:first-child {
+            padding-right: 25px; /* Ruimte voor het waarschuwingsicoon */
+        }
+
+        .needs-result td:first-child::after {
+            content: '⚠️';
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        .needs-result:hover td:first-child::before {
+            content: 'Klik om wedstrijdresultaat te registreren';
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--warning-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        /* Drag handle styling */
+        .drag-handle {
+            cursor: grab;
+            padding: 3px 6px;
+            color: var(--gray);
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-user-drag: element;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            margin-right: 6px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .drag-handle:hover {
+            color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr.dragging {
+            opacity: 0.5;
+            background-color: var(--primary-light) !important;
+            box-shadow: var(--shadow-lg);
+            outline: 2px solid var(--primary-color);
+            position: relative;
+            z-index: 1000;
+        }
+
+        tr.drop-target-top::before,
+        tr.drop-target-bottom::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        tr.drop-target-top::before {
+            top: -2px;
+        }
+
+        tr.drop-target-bottom::before {
+            bottom: -2px;
+        }
+
+        /* Zorg ervoor dat de tabel rijen niet selecteerbaar zijn tijdens drag & drop */
+        .table-container {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        tr {
+            position: relative;
+            cursor: default;
+            user-select: none;
+        }
+
+        /* Donatie knop stijlen */
+        .donate-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .donate-button {
+            display: inline-block;
+            background-color: #ffd700; /* Goudkleur in plaats van blauw */
+            color: #333; /* Donkere tekst voor betere leesbaarheid */
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 5px;
+            transition: all 0.3s ease;
+            font-weight: bold; /* Vetgedrukt voor meer nadruk */
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2); /* Subtiele schaduw voor diepte */
+            animation: pulse 2s infinite; /* Pulseereffect toevoegen */
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+            }
+        }
+
+        .donate-button:hover {
+            background-color: #daa520; /* Donkerdere goudkleur bij hover */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: none; /* Stop het pulseren bij hover */
+        }
+
+        .donate-button i {
+            margin-right: 5px;
+        }
+
+        .btn-donate {
+            background-color: #4caf50 !important;
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+        }
+
+        .btn-donate:hover {
+            background-color: #2e7d32 !important;
+        }
+
+        /* Footer styles */
+        footer {
+            display: block !important;
+            background-color: var(--primary-dark);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .footer-content p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        /* Help modal styles */
+        .help-content {
+            margin: 20px 0;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+
+        .help-content h4 {
+            color: var(--primary-dark);
+            margin: 15px 0 10px 0;
+        }
+
+        .help-content ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .help-content li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .help-content li::before {
+            content: "•";
+            color: var(--primary-color);
+            position: absolute;
+            left: 0;
+        }
+
+        /* Verbeterde tooltip styles */
+        [data-tooltip] {
+            position: relative;
+        }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        [data-tooltip]:hover::before {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.8);
+            margin-bottom: -4px;
+        }
+
+        /* Aangepaste grid voor management knoppen */
+        .actions-grid {
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Animaties voor verschillende elementen */
+        @keyframes slideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+            70% { transform: scale(0.9); }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Animatie toepassing op elementen */
+        .team-player {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .winner-tile, .position-extra {
+            animation: scaleIn 0.4s ease-out;
+        }
+
+        .modified td {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .podium .position {
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Hover animaties voor knoppen */
+        .btn:not([disabled]) {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:not([disabled]):hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:not([disabled]):active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        /* Team animaties */
+        .team {
+            transition: all 0.3s ease;
+        }
+
+        .team:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        /* Statistieken update animatie */
+        @keyframes numberChange {
+            0% {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modified-value {
+            animation: numberChange 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Podium hover effecten */
+        .position:hover .player-avatar {
+            transform: scale(1.1) rotate(5deg);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .position:hover .pedestal {
+            transform: translateY(-5px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Table row hover animatie */
+        tr:not(.modified):hover {
+            transform: translateX(5px);
+            transition: transform 0.3s ease;
+        }
+
+        /* Modal animaties */
+        .modal {
+            animation: modalEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes modalEnter {
+            from {
+                transform: translate(-50%, -60%) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Notificatie animatie */
+        .unsaved-changes {
+            animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Header animatie */
+        header h1 {
+            position: relative;
+            overflow: hidden;
+        }
+
+        header h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255,255,255,0.5);
+            transform: translateX(-100%);
+            animation: headerLine 2s ease-in-out infinite;
+        }
+
+        @keyframes headerLine {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            animation: scaleIn 0.4s ease-out;
+        }
+
+        .stats-card h3 {
+            color: var(--primary-dark);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .streak-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--gray-light);
+            border-radius: var(--border-radius);
+            transition: transform 0.3s ease;
+        }
+
+        .streak-item:hover {
+            transform: translateX(10px);
+            background: var(--primary-light);
+        }
+
+        .streak-player {
+            font-weight: bold;
+        }
+
+        .streak-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        /* Exporteer container styling */
+        .export-container {
+            background-color: white;
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 1400px;
+            padding: 40px;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .export-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .export-chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .export-streak-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .export-streak-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .export-streak-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+        <header>
+            <h1>Wedstrijd Statistieken</h1>
+        </header>
+
+    <section class="section-management">
+        <div class="actions-grid">
+            <button onclick="saveData()" class="btn action-btn" data-tooltip="Sla alle statistieken op in een bestand">Opslaan</button>
+            <button onclick="loadDataFromFile()" class="btn action-btn btn-warning" data-tooltip="Laad eerder opgeslagen statistieken">Laden</button>
+            <button onclick="undoLast()" class="btn action-btn btn-warning" data-tooltip="Maak de laatste actie ongedaan">Ongedaan maken</button>
+            <button onclick="redoLast()" class="btn action-btn btn-warning" data-tooltip="Voer de laatste ongedaan gemaakte actie opnieuw uit">Opnieuw</button>
+            <button onclick="resetStats()" class="btn action-btn btn-warning" data-tooltip="Zet alle statistieken terug naar 0">Reset</button>
+            <button onclick="resetPlayers()" class="btn action-btn btn-danger" data-tooltip="Verwijder alle spelers permanent">Verwijder</button>
+            <button onclick="exportCharts()" class="btn action-btn btn-success" data-tooltip="Exporteer alle resultaten als afbeelding">Uitdraai Resultaten</button>
+            <button onclick="showHelp()" class="btn action-btn" data-tooltip="Toon uitleg over alle functies">Help</button>
+        </div>
+    </section>
+
+    <div class="container">
+        <div id="unsavedChanges" class="unsaved-changes">Niet-opgeslagen wijzigingen!</div>
+        
+        <section class="section-add-player">
+            <h2>Speler Toevoegen</h2>
+            <div class="add-player-form">
+                <input type="text" id="firstname" placeholder="Voornaam" required>
+                <input type="text" id="lastname" placeholder="Achternaam (optioneel)">
+                <button id="addPlayerButton" class="btn">Toevoegen</button>
+            </div>
+        </section>
+        
+        <section class="section-players">
+            <h2>Spelerslijst</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Naam</th>
+                            <th>Aanwezigheid</th>
+                            <th>Te laat</th>
+                            <th>Overwinningen</th>
+                            <th>Verlies</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section-teams">
+            <h2>Teams van Vandaag</h2>
+            <div class="team-container">
+                <div class="team" id="team1">
+                    <h3>Team 1 <span class="team-count">0/5</span></h3>
+                    <select class="player-select" id="team1-select">
+                        <option value="">Selecteer speler...</option>
+                    </select>
+                    <div class="team-players" id="team1-players"></div>
+                </div>
+                <div class="team" id="team2">
+                    <h3>Team 2 <span class="team-count">0/5</span></h3>
+                    <select class="player-select" id="team2-select">
+                        <option value="">Selecteer speler...</option>
+                    </select>
+                    <div class="team-players" id="team2-players"></div>
+                </div>
+            </div>
+            <div class="team-controls">
+                <button class="btn btn-success" onclick="setTeamWinner('team1')">Overwinning Team 1</button>
+                <button class="btn btn-success" onclick="setTeamWinner('team2')">Overwinning Team 2</button>
+                <button class="btn btn-warning" onclick="resetTeams()">Reset Teams</button>
+            </div>
+
+            <section class="section-top3-late">
+            <h2>Top 3 Te Laat</h2>
+            <div class="podium">
+                <div class="position second-place" id="second-place">
+                    <div class="position-number">2</div>
+                    <div class="player-avatar">2</div>
+                    <div class="player-info">
+                        <div class="player-name">-</div>
+                        <div class="player-stats">-</div>
+                    </div>
+                    <div class="pedestal"></div>
+                </div>
+                <div class="position first-place" id="first-place">
+                    <div class="position-number">1</div>
+                    <div class="player-avatar">1</div>
+                    <div class="player-info">
+                        <div class="player-name">-</div>
+                        <div class="player-stats">-</div>
+                    </div>
+                    <div class="pedestal"></div>
+                </div>
+                <div class="position third-place" id="third-place">
+                    <div class="position-number">3</div>
+                    <div class="player-avatar">3</div>
+                    <div class="player-info">
+                        <div class="player-name">-</div>
+                        <div class="player-stats">-</div>
+                    </div>
+                    <div class="pedestal"></div>
+                </div>
+            </div>
+        </section>
+
+            <section class="section-winners">
+                <h2>Top 5 Winnaars</h2>
+                <div class="podium winners-podium">
+                    <div class="position second-place" id="second-winner">
+                        <div class="position-number">2</div>
+                        <div class="player-avatar silver">2</div>
+                        <div class="player-info">
+                            <div class="player-name">-</div>
+                            <div class="player-stats">-</div>
+            </div>
+                        <div class="pedestal"></div>
+            </div>
+                    <div class="position first-place" id="first-winner">
+                        <div class="position-number">1</div>
+                        <div class="player-avatar gold">1</div>
+                        <div class="player-info">
+                            <div class="player-name">-</div>
+                            <div class="player-stats">-</div>
+                        </div>
+                        <div class="pedestal"></div>
+                    </div>
+                    <div class="position third-place" id="third-winner">
+                        <div class="position-number">3</div>
+                        <div class="player-avatar bronze">3</div>
+                        <div class="player-info">
+                            <div class="player-name">-</div>
+                            <div class="player-stats">-</div>
+                        </div>
+                        <div class="pedestal"></div>
+                    </div>
+                </div>
+                <div class="winners-extra">
+                    <div class="position-extra" id="fourth-winner">
+                        <div class="position-number">4</div>
+                        <div class="player-info">
+                            <div class="player-name">-</div>
+                            <div class="player-stats">-</div>
+                        </div>
+                    </div>
+                    <div class="position-extra" id="fifth-winner">
+                        <div class="position-number">5</div>
+                        <div class="player-info">
+                            <div class="player-name">-</div>
+                            <div class="player-stats">-</div>
+                        </div>
+                    </div>
+            </div>
+            </section>
+        </section>
+
+        <section class="section-stats">
+            <h2>Prestatie Overzicht</h2>
+            <div class="stats-grid">
+                <div class="stats-card" id="player-of-month">
+                    <h3>Speler van de Maand</h3>
+                    <div class="stats-content" id="monthlyStats"></div>
+            </div>
+                <div class="stats-card" id="streaks">
+                    <h3>Winstreeks</h3>
+                    <div class="stats-content" id="winstreaks"></div>
+                </div>
+                <div class="stats-card" id="loss-streaks">
+                    <h3>Verliesstreeks</h3>
+                    <div class="stats-content" id="lossstreaks"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal voor speler aanpassen -->
+    <div id="editModal" class="modal">
+        <h3>Speler Bewerken</h3>
+        <div class="modal-form">
+            <input type="text" id="editFirstname" placeholder="Nieuwe Voornaam">
+            <input type="text" id="editLastname" placeholder="Nieuwe Achternaam">
+            <div class="modal-buttons">
+                <button onclick="closeEditModal()" class="btn btn-warning">Annuleren</button>
+                <button onclick="savePlayerEdit()" class="btn btn-success">Opslaan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay voor modal -->
+    <div id="editModalOverlay" class="modal-overlay"></div>
+
+    <!-- Donatie Modal -->
+    <div id="donateModal" class="modal">
+        <h3>Steun Ahatsuki Studio</h3>
+        <div class="help-content">
+            <p>Bedankt voor je interesse in het steunen van deze app! Je donatie helpt Ahatsuki Studio bij het onderhouden en verbeteren van deze tool.</p>
+            
+            <h4>Donatiemogelijkheden:</h4>
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                <a href="https://paypal.me/AhatsukiStudio" target="_blank" class="donate-button" style="text-align: center;">
+                    <i>💳</i> Doneren via PayPal
+                </a>
+                <a href="https://buymeacoffee.com/ahatsukistudio" target="_blank" class="donate-button" style="text-align: center;">
+                    <i>☕</i> Trakteer me op een koffie
+                </a>
+            </div>
+            
+            <p style="margin-top: 20px; font-style: italic;">Bedankt voor je steun aan de Wedstrijd Statistieken App!</p>
+        </div>
+        <div class="modal-buttons">
+            <button onclick="closeDonateModal()" class="btn btn-success">Sluiten</button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <h3>Uitleg Wedstrijd Statistieken</h3>
+        <div class="help-content">
+            <h4>Algemene Functies:</h4>
+            <ul>
+                <li>Voeg nieuwe spelers toe met voornaam en achternaam</li>
+                <li>Houd aanwezigheid, te laat komen, overwinningen en verliezen bij</li>
+                <li>Maak teams en registreer wedstrijdresultaten</li>
+                <li>Bekijk top 3 laatkomers en top 5 winnaars</li>
+                <li>Volg actieve winstreeks van spelers</li>
+                <li>Bekijk gedetailleerde statistieken per speler</li>
+            </ul>
+
+            <h4>Spelersbeheer:</h4>
+            <ul>
+                <li>Sleep spelers om de volgorde aan te passen</li>
+                <li>Bewerk spelersnamen met de 'Edit' knop</li>
+                <li>Verwijder individuele spelers met de '×' knop</li>
+                <li>Beheer statistieken met de + en - knoppen</li>
+            </ul>
+
+            <h4>Teams & Wedstrijden:</h4>
+            <ul>
+                <li>Selecteer spelers voor Team 1 en Team 2</li>
+                <li>Registreer wedstrijdresultaten met de 'Overwinning Team' knoppen</li>
+                <li>Teams blijven behouden na het registreren van een winnaar</li>
+                <li>Verwijder individuele spelers uit teams of gebruik 'Reset Teams' voor volledig nieuwe teams</li>
+                <li>Statistieken worden automatisch bijgewerkt na een wedstrijd</li>
+                <li>Winstreeks wordt automatisch bijgehouden</li>
+            </ul>
+
+            <h4>Statistieken & Overzichten:</h4>
+            <ul>
+                <li>Top 3 laatkomers met percentages</li>
+                <li>Top 5 winnaars met win/verlies ratio</li>
+                <li>Actieve en historische winstreeks per speler</li>
+                <li>Maandelijkse prestatie statistieken</li>
+                <li>Grafieken worden automatisch bijgewerkt</li>
+            </ul>
+
+            <h4>Management Knoppen:</h4>
+            <ul>
+                <li><strong>Opslaan:</strong> Sla alle statistieken op in een bestand</li>
+                <li><strong>Laden:</strong> Laad eerder opgeslagen statistieken</li>
+                <li><strong>Ongedaan maken:</strong> Maak de laatste actie ongedaan (inclusief reset acties)</li>
+                <li><strong>Opnieuw:</strong> Voer ongedaan gemaakte acties opnieuw uit</li>
+                <li><strong>Reset:</strong> Zet alle statistieken terug naar 0 (kan ongedaan worden gemaakt)</li>
+                <li><strong>Verwijder:</strong> Verwijder alle spelers (kan ongedaan worden gemaakt)</li>
+                <li><strong>Exporteer Grafieken:</strong> Exporteer statistieken als afbeeldingen</li>
+                <li><strong>Help:</strong> Toon deze uitleg</li>
+            </ul>
+
+            <h4>Extra Features:</h4>
+            <ul>
+                <li>Automatische waarschuwing bij niet-opgeslagen wijzigingen</li>
+                <li>Uitgebreide undo/redo functionaliteit voor alle acties</li>
+                <li>Teams blijven behouden voor meerdere wedstrijden</li>
+                <li>Bevestigingsmeldingen voor belangrijke acties</li>
+                <li>Animaties voor visuele feedback</li>
+                <li>Aanpasbare kolombreedtes in de spelerstabel</li>
+                <li>Exporteer statistieken als afbeeldingen</li>
+            </ul>
+        </div>
+        <div class="modal-buttons">
+            <button onclick="closeHelpModal()" class="btn btn-success">Sluiten</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>© 2025 Wedstrijd Statistieken App | Ontwikkeld door Ahatsuki Studio</p>
+            <p>Versie 1.1.0 | Alle rechten voorbehouden. Ongeautoriseerd gebruik of distributie is niet toegestaan.</p>
+            <div class="donate-container">
+                <p>Vind je deze app nuttig?</p>
+                <a href="#" onclick="showDonateOptions(event)" class="donate-button">
+                    ✨ Steun ons met een koffie! ☕
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const APP_VERSION = '1.1.0';
+        let players = {};
+        let history = [];
+        let currentPlayerKey = '';
+        let hasUnsavedChanges = false;
+        let modifiedPlayers = new Set();
+        let redoHistory = [];
+
+        // Event listener voor het verlaten van de pagina
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je de pagina wilt verlaten?';
+                return e.returnValue;
+            }
+        });
+
+        // Functie om lokaal op te slaan zonder bestand te maken
+        function saveLocalData() {
+            localStorage.setItem('players', JSON.stringify(players));
+            hasUnsavedChanges = true;
+            document.getElementById("unsavedChanges").style.display = "block";
+        }
+
+        // Initialiseer de applicatie bij het laden van de pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            // Registreer de service worker voor PWA functionaliteit
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker geregistreerd met scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registratie mislukt:', error);
+                    });
+            }
+            
+            // Voeg een 'installeer app' knop toe
+            let deferredPrompt;
+            const installAppButton = document.createElement('button');
+            installAppButton.id = 'installApp';
+            installAppButton.textContent = 'Installeer App';
+            installAppButton.style.display = 'none';
+            installAppButton.classList.add('action-btn');
+            installAppButton.setAttribute('data-tooltip', 'Installeer deze app op je apparaat');
+            
+            const actionsGrid = document.querySelector('.actions-grid');
+            actionsGrid.appendChild(installAppButton);
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Voorkom dat de standaard install prompt verschijnt
+                e.preventDefault();
+                // Bewaar het event voor later gebruik
+                deferredPrompt = e;
+                // Toon de installeer knop
+                installAppButton.style.display = 'block';
+            });
+            
+            installAppButton.addEventListener('click', () => {
+                if (deferredPrompt) {
+                    // Toon de installatie prompt
+                    deferredPrompt.prompt();
+                    // Wacht op de gebruiker om te reageren op de prompt
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Gebruiker heeft de app geïnstalleerd');
+                            installAppButton.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
+            
+            loadData();
+            
+            // Event listener voor de toevoegen knop
+            document.getElementById("addPlayerButton").addEventListener("click", addPlayer);
+            
+            // Event listeners voor enter toets in input velden
+            document.getElementById("firstname").addEventListener("keyup", function(event) {
+                if (event.key === "Enter") {
+                    addPlayer();
+                }
+            });
+            
+            document.getElementById("lastname").addEventListener("keyup", function(event) {
+                if (event.key === "Enter") {
+                    addPlayer();
+                }
+            });
+            
+            // Versie tonen in footer
+            document.querySelector('footer .footer-content p:last-child').innerHTML = 
+                `Versie ${APP_VERSION} | Alle rechten voorbehouden. Ongeautoriseerd gebruik of distributie is niet toegestaan.`;
+        });
+
+        // Toevoegen van een nieuwe speler
+        function addPlayer() {
+            const firstname = document.getElementById("firstname").value.trim();
+            const lastname = document.getElementById("lastname").value.trim();
+            
+            if (!firstname) {
+                alert("Vul een voornaam in!");
+                return;
+            }
+
+            const key = `${firstname.toLowerCase()}_${lastname.toLowerCase()}`;
+            if (players[key]) {
+                alert("Deze speler bestaat al!");
+                return;
+            }
+
+            // Voeg nieuwe speler toe met initiële waarden
+            players[key] = {
+                firstname,
+                lastname,
+                attendance: 0,
+                late: 0,
+                wins: 0,
+                losses: 0,
+                order: Object.keys(players).length // Nieuwe spelers krijgen de laatste positie
+            };
+
+            // Voeg toe aan geschiedenis voor undo functionaliteit
+            history.push({
+                action: "add",
+                player: {
+                    key,
+                    data: {...players[key]}
+                }
+            });
+
+            // Sla op en update UI
+            saveLocalData();
+            updateTable();
+            
+            // Reset input velden
+            document.getElementById("firstname").value = "";
+            document.getElementById("lastname").value = "";
+            document.getElementById("firstname").focus();
+        }
+
+        // Gegevens opslaan naar lokale opslag en naar een bestand
+        function saveData() {
+            // Opslaan naar lokale opslag
+            localStorage.setItem('players', JSON.stringify(players));
+            
+            // Opslaan naar bestand
+            let dataStr = JSON.stringify(players, null, 2);
+            let blob = new Blob([dataStr], { type: 'application/json' });
+            let link = document.createElement('a');
+            let currentDate = new Date().toLocaleString().replace(/[^a-zA-Z0-9]/g, "_");
+            link.download = `wedstrijd_statistieken_${currentDate}.json`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            document.getElementById("lastSaved").innerText = "Laatst opgeslagen: " + new Date().toLocaleString();
+            hasUnsavedChanges = false;
+            document.getElementById("unsavedChanges").style.display = "none";
+        }
+
+        // Laad gegevens uit lokale opslag
+        function loadData() {
+            if (localStorage.getItem('players')) {
+                players = JSON.parse(localStorage.getItem('players'));
+                updateTable();
+                hasUnsavedChanges = false;
+                document.getElementById("unsavedChanges").style.display = "none";
+            }
+        }
+
+        // Laad de gegevens vanuit een bestand
+        function loadDataFromFile() {
+            if (hasUnsavedChanges && !confirm("Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je een bestand wilt laden?")) {
+                return;
+            }
+
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(event) {
+                let file = event.target.files[0];
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        players = JSON.parse(e.target.result);
+                        updateTable();
+                        hasUnsavedChanges = true;
+                        document.getElementById("unsavedChanges").style.display = "block";
+                    } catch (error) {
+                        alert("Het bestand bevat ongeldige data. Selecteer een geldig JSON-bestand.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Reset alleen de statistieken, behoud de spelers
+        function resetStats() {
+            if (confirm("Weet je zeker dat je alle statistieken wilt resetten? Alle scores worden op 0 gezet.")) {
+                // Sla de huidige staat op voor undo
+                const previousState = {};
+                for (let key in players) {
+                    previousState[key] = {...players[key]};
+                }
+                
+                history.push({
+                    action: "reset_stats",
+                    previousState: previousState,
+                    timestamp: Date.now()
+                });
+
+                // Reset alle statistieken
+                for (let key in players) {
+                    players[key] = {
+                        ...players[key],
+                        attendance: 0,
+                        late: 0,
+                        wins: 0,
+                        losses: 0,
+                        winHistory: []
+                    };
+                }
+                
+                saveLocalData();
+                updateTable();
+                updateStreakDisplay(); // Update de winstreek weergave
+                ChartManager.resetAllCharts();
+                UIManager.resetPodiums();
+            }
+        }
+
+        // Verwijder alle spelers
+        function resetPlayers() {
+            if (confirm("Weet je zeker dat je ALLE SPELERS wilt verwijderen? Dit kan ongedaan worden gemaakt met de Undo knop.")) {
+                // Sla de huidige staat op voor undo
+                history.push({
+                    action: "reset_players",
+                    previousState: {...players},
+                    timestamp: Date.now()
+                });
+
+                players = {};
+                saveLocalData();
+                updateTable();
+                updateStreakDisplay();
+                ChartManager.resetAllCharts();
+                UIManager.resetPodiums();
+            }
+        }
+
+        // Update de undo functie
+        function undoLast() {
+            if (history.length === 0) {
+                alert("Geen actie om ongedaan te maken!");
+                return;
+            }
+
+            // Haal de laatste actie op
+            let lastAction = history.pop();
+            
+            // Sla de huidige staat op voor redo
+            redoHistory.push({
+                action: lastAction.action,
+                state: {...players},
+                previousState: lastAction.previousState,
+                timestamp: lastAction.timestamp,
+                player: lastAction.player,
+                winners: lastAction.winners,
+                losers: lastAction.losers,
+                oldKey: lastAction.oldKey,
+                newKey: lastAction.newKey,
+                oldData: lastAction.oldData,
+                field: lastAction.field,
+                oldValue: lastAction.oldValue
+            });
+
+            // Herstel de staat op basis van de actie
+            switch (lastAction.action) {
+                case "reset_stats":
+                case "reset_players":
+                    players = JSON.parse(JSON.stringify(lastAction.previousState)); // Diepe kopie
+                    break;
+                case "team_result":
+                    lastAction.winners.forEach(({key, oldData}) => {
+                        players[key] = JSON.parse(JSON.stringify(oldData)); // Diepe kopie
+                        modifiedPlayers.delete(key);
+                    });
+                    lastAction.losers.forEach(({key, oldData}) => {
+                        players[key] = JSON.parse(JSON.stringify(oldData)); // Diepe kopie
+                        modifiedPlayers.delete(key);
+                    });
+                    break;
+                case "add":
+                    delete players[lastAction.player.key];
+                    break;
+                case "remove":
+                    players[lastAction.player.key] = JSON.parse(JSON.stringify(lastAction.player.data)); // Diepe kopie
+                    break;
+                case "edit":
+                    players[lastAction.oldKey] = JSON.parse(JSON.stringify(lastAction.oldData)); // Diepe kopie
+                    delete players[lastAction.newKey];
+                    break;
+                case "update":
+                    players[lastAction.player.key][lastAction.field] = lastAction.oldValue;
+                    modifiedPlayers.delete(lastAction.player.key);
+                    break;
+            }
+
+            saveLocalData();
+            updateTable();
+            updateStreakDisplay();
+            ChartManager.updateAllCharts();
+            UIManager.updatePodiums();
+        }
+
+        // Voeg de redo functie toe
+        function redoLast() {
+            if (redoHistory.length === 0) {
+                alert("Geen actie om opnieuw uit te voeren!");
+                return;
+            }
+
+            const redoAction = redoHistory.pop();
+            
+            // Sla de huidige staat op voor undo
+            history.push({
+                action: redoAction.action,
+                state: {...players},
+                previousState: redoAction.previousState,
+                timestamp: redoAction.timestamp,
+                player: redoAction.player,
+                winners: redoAction.winners,
+                losers: redoAction.losers,
+                oldKey: redoAction.oldKey,
+                newKey: redoAction.newKey,
+                oldData: redoAction.oldData,
+                field: redoAction.field,
+                oldValue: redoAction.oldValue
+            });
+
+            // Herstel de staat op basis van de actie
+            switch (redoAction.action) {
+                case "reset_stats":
+                case "reset_players":
+                    players = JSON.parse(JSON.stringify(redoAction.state)); // Diepe kopie
+                    break;
+                case "team_result":
+                    redoAction.winners.forEach(({key}) => {
+                        if (!players[key]) players[key] = {};
+                        players[key].attendance = (players[key].attendance || 0) + 1;
+                        players[key].wins = (players[key].wins || 0) + 1;
+                        modifiedPlayers.add(key);
+                    });
+                    redoAction.losers.forEach(({key}) => {
+                        if (!players[key]) players[key] = {};
+                        players[key].attendance = (players[key].attendance || 0) + 1;
+                        players[key].losses = (players[key].losses || 0) + 1;
+                        modifiedPlayers.add(key);
+                    });
+                    break;
+                case "add":
+                    players[redoAction.player.key] = JSON.parse(JSON.stringify(redoAction.player.data)); // Diepe kopie
+                    break;
+                case "remove":
+                    delete players[redoAction.player.key];
+                    break;
+                case "edit":
+                    delete players[redoAction.oldKey];
+                    players[redoAction.newKey] = JSON.parse(JSON.stringify(redoAction.oldData)); // Diepe kopie
+                    break;
+                case "update":
+                    players[redoAction.player.key][redoAction.field]++;
+                    modifiedPlayers.add(redoAction.player.key);
+                    break;
+            }
+
+            saveLocalData();
+            updateTable();
+            updateStreakDisplay();
+            ChartManager.updateAllCharts();
+            UIManager.updatePodiums();
+        }
+
+        // Bereken winstpercentage op basis van aanwezigheid
+        function calculateWinPercentage(player) {
+            if (player.attendance === 0) return 0;
+            return (player.wins / player.attendance) * 100;
+        }
+
+        // Bepaal CSS klasse voor winstpercentage
+        function getWinPercentageClass(percentage) {
+            if (percentage >= 60) return 'win-percentage-good';
+            if (percentage >= 40) return 'win-percentage-medium';
+            return 'win-percentage-bad';
+        }
+
+        // Update de tabel met spelers
+        function updateTable() {
+            const tableBody = document.getElementById("playerTable");
+            tableBody.innerHTML = '';
+            
+            const sortedPlayers = Object.entries(players).sort(([,a], [,b]) => {
+                if (a.order !== b.order) {
+                    return a.order - b.order;
+                }
+                return (a.firstname + ' ' + a.lastname).localeCompare(b.firstname + b.lastname);
+            });
+
+            sortedPlayers.forEach(([key, player], index) => {
+                const row = document.createElement('tr');
+                row.draggable = true;
+                row.dataset.playerKey = key;
+                
+                // Voeg modified class toe als de speler is gewijzigd
+                if (modifiedPlayers.has(key)) {
+                    row.classList.add('modified');
+                }
+
+                // Controleer of de speler aanwezig is maar nog geen win/verlies heeft
+                if (player.attendance > 0 && player.wins + player.losses < player.attendance) {
+                    row.classList.add('needs-result');
+                    row.onclick = function(e) {
+                        // Voorkom dat de klik wordt geactiveerd bij het klikken op knoppen of de drag handle
+                        if (!e.target.closest('.controls') && !e.target.closest('.drag-handle')) {
+                            document.querySelector('.section-teams').scrollIntoView({ behavior: 'smooth' });
+                        }
+                    };
+                }
+                
+                const winPercentage = calculateWinPercentage(player);
+                const latePercentage = player.attendance > 0 ? (player.late / player.attendance) * 100 : 0;
+                
+                row.innerHTML = `
+                    <td style="text-align: center;">
+                        <span class="drag-handle" draggable="true">⋮⋮</span>${index + 1}
+                    </td>
+                    <td>${player.firstname} ${player.lastname}
+                        <div class="controls">
+                            <button onclick="editPlayer('${key}')" class="btn btn-circle btn-edit">Edit</button>
+                            <button onclick="removePlayer('${key}')" class="btn btn-circle btn-danger">×</button>
+                        </div>
+                        ${modifiedPlayers.has(key) ? '<div class="modified-indicator"></div>' : ''}
+                    </td>
+                    <td class="${modifiedPlayers.has(key) ? 'modified-value' : ''}">
+                        ${player.attendance}
+                        <div class="controls">
+                            <button onclick="incrementField('${key}', 'attendance')" class="btn btn-circle btn-plus">+</button>
+                            <button onclick="decrementField('${key}', 'attendance')" class="btn btn-circle btn-minus" 
+                                    ${player.wins + player.losses + player.late > player.attendance - 1 ? 'disabled' : ''} 
+                                    title="${player.wins + player.losses + player.late > player.attendance - 1 ? 'Verwijder eerst wins/losses/te laat' : ''}">-</button>
+                        </div>
+                    </td>
+                    <td class="${modifiedPlayers.has(key) ? 'modified-value' : ''}">
+                        ${player.late} (${latePercentage.toFixed(1)}%)
+                        <div class="controls">
+                            <button onclick="incrementField('${key}', 'late')" class="btn btn-circle btn-warning">+</button>
+                            <button onclick="decrementField('${key}', 'late')" class="btn btn-circle btn-warning" 
+                                    ${player.late === 0 ? 'disabled' : ''}>-</button>
+                        </div>
+                    </td>
+                    <td class="${modifiedPlayers.has(key) ? 'modified-value' : ''}">
+                        ${player.wins} (${winPercentage.toFixed(1)}%)
+                        <div class="controls">
+                            <button onclick="incrementField('${key}', 'wins')" class="btn btn-circle btn-success"
+                                    ${player.attendance === 0 || player.wins + player.losses >= player.attendance ? 'disabled' : ''}>+</button>
+                            <button onclick="decrementField('${key}', 'wins')" class="btn btn-circle btn-success"
+                                    ${player.wins === 0 ? 'disabled' : ''}>-</button>
+                        </div>
+                    </td>
+                    <td class="${modifiedPlayers.has(key) ? 'modified-value' : ''}">
+                        ${player.losses}
+                        <div class="controls">
+                            <button onclick="incrementField('${key}', 'losses')" class="btn btn-circle btn-danger"
+                                    ${player.attendance === 0 || player.wins + player.losses >= player.attendance ? 'disabled' : ''}>+</button>
+                            <button onclick="decrementField('${key}', 'losses')" class="btn btn-circle btn-danger"
+                                    ${player.losses === 0 ? 'disabled' : ''}>-</button>
+                        </div>
+                    </td>
+                `;
+
+                // Voeg event listeners toe voor drag & drop
+                row.addEventListener('dragstart', handleDragStart);
+                row.addEventListener('dragend', handleDragEnd);
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('drop', handleDrop);
+                
+                tableBody.appendChild(row);
+            });
+
+            updatePodium();
+            updateTopWinners();
+        }
+
+        // Increment een veld voor een speler
+        function incrementField(playerKey, field, addToHistory = true) {
+            if (players[playerKey]) {
+                // Als het niet om aanwezigheid gaat, check eerst of er aanwezigheid is
+                if (field !== 'attendance' && players[playerKey].attendance === 0) {
+                    alert("Registreer eerst de aanwezigheid voordat je andere statistieken toevoegt.");
+                    return;
+                }
+
+                // Check voor te laat
+                if (field === 'late') {
+                    if (players[playerKey].late >= players[playerKey].attendance) {
+                        alert("Een speler kan niet vaker te laat zijn dan aanwezig.");
+                        return;
+                    }
+                }
+
+                // Check voor wins en losses
+                if (field === 'wins' || field === 'losses') {
+                    const totalGames = players[playerKey].wins + players[playerKey].losses;
+                    if (totalGames >= players[playerKey].attendance) {
+                        alert("Het totaal aantal overwinningen en verliezen kan niet hoger zijn dan de aanwezigheid.");
+                        return;
+                    }
+                }
+
+                // Alleen toevoegen aan geschiedenis als addToHistory true is
+                if (addToHistory) {
+                    history.push({
+                        action: "update",
+                        player: { key: playerKey },
+                        field: field,
+                        oldValue: players[playerKey][field]
+                    });
+                }
+
+                players[playerKey][field]++;
+
+                // Update winHistory bij handmatige win/loss toevoeging
+                if ((field === 'wins' || field === 'losses') && !players[playerKey].winHistory) {
+                    players[playerKey].winHistory = [];
+                }
+                
+                if (field === 'wins') {
+                    players[playerKey].winHistory.push('win');
+                    updateStreakDisplay();
+                } else if (field === 'losses') {
+                    players[playerKey].winHistory.push('loss');
+                    updateStreakDisplay();
+                } else if (field === 'late' || field === 'attendance') {
+                    // Update speler van de maand bij wijzigingen in te laat komen of aanwezigheid
+                    updateStreakDisplay();
+                }
+
+                // Toon herinnering als aanwezigheid wordt verhoogd
+                if (field === 'attendance' && addToHistory) {
+                    const player = players[playerKey];
+                    const playerName = `${player.firstname} ${player.lastname}`;
+                    if (confirm(`Wil je direct het wedstrijdresultaat registreren voor ${playerName}?\n\nKlik 'OK' om naar de teams sectie te scrollen.`)) {
+                        document.querySelector('.section-teams').scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+
+                if (addToHistory) {
+                    saveLocalData();
+                    updateTable();
+                }
+            }
+        }
+
+        // Decrement een veld voor een speler
+        function decrementField(playerKey, field) {
+            if (players[playerKey] && players[playerKey][field] > 0) {
+                // Speciale check voor attendance
+                if (field === 'attendance') {
+                    // Check of er nog statistieken zijn die hoger zouden worden dan attendance
+                    if (players[playerKey].wins + players[playerKey].losses + players[playerKey].late > players[playerKey][field] - 1) {
+                        alert("Verlaag eerst het aantal overwinningen, verliezen en/of te laat voordat je de aanwezigheid verlaagt.");
+                        return;
+                    }
+                }
+
+                history.push({
+                    action: "update",
+                    player: { key: playerKey },
+                    field: field,
+                    oldValue: players[playerKey][field]
+                });
+
+                players[playerKey][field]--;
+
+                // Update winHistory bij handmatige win/loss verwijdering
+                if ((field === 'wins' || field === 'losses') && players[playerKey].winHistory && players[playerKey].winHistory.length > 0) {
+                    const type = field === 'wins' ? 'win' : 'loss';
+                    // Zoek de laatste win/loss van het juiste type en verwijder deze
+                    for (let i = players[playerKey].winHistory.length - 1; i >= 0; i--) {
+                        if (players[playerKey].winHistory[i] === type) {
+                            players[playerKey].winHistory.splice(i, 1);
+                            break;
+                        }
+                    }
+                    updateStreakDisplay();
+                } else if (field === 'late' || field === 'attendance') {
+                    // Update speler van de maand bij wijzigingen in te laat komen of aanwezigheid
+                    updateStreakDisplay();
+                }
+
+                saveLocalData();
+                updateTable();
+            }
+        }
+
+        // Verwijder een speler
+        function removePlayer(playerKey) {
+            if (confirm("Weet je zeker dat je deze speler wilt verwijderen?")) {
+                history.push({
+                    action: "remove",
+                    player: {
+                        key: playerKey,
+                        data: {...players[playerKey]}
+                    }
+                });
+                delete players[playerKey];
+                saveLocalData();
+                updateTable();
+            }
+        }
+
+        // Update het podium met top 3 laatkomers
+        function updatePodium() {
+            const sortedPlayers = Object.entries(players)
+                .filter(([,player]) => player.attendance > 0 && player.late > 0)  // Filter spelers zonder te laat of aanwezigheid
+                .sort(([,a], [,b]) => (b.late / b.attendance || 0) - (a.late / a.attendance || 0))
+                .slice(0, 3);
+
+            ['first', 'second', 'third'].forEach((position, index) => {
+                const element = document.getElementById(`${position}-place`);
+                const player = sortedPlayers[index];
+                
+                if (player) {
+                    const [key, data] = player;
+                    const latePercentage = (data.late / data.attendance * 100).toFixed(1);
+                    
+                    element.style.display = 'flex';  // Toon de positie
+                    element.querySelector('.player-name').textContent = `${data.firstname} ${data.lastname}`;
+                    element.querySelector('.player-stats').innerHTML = `
+                        ${latePercentage}% te laat<br>
+                        <span style="font-size: 0.9em; color: #666;">(${data.late}x te laat / ${data.attendance} aanwezig)</span>
+                    `;
+                    element.querySelector('.player-avatar').textContent = data.firstname.charAt(0);
+                } else {
+                    element.style.display = 'none';  // Verberg de positie als er geen speler is
+                }
+            });
+        }
+
+        // Update de top winnaars weergave
+        function updateTopWinners() {
+            const sortedPlayers = Object.entries(players)
+                .filter(([,player]) => player.attendance > 0)  // Filter spelers die nooit aanwezig zijn geweest
+                .sort(([,a], [,b]) => calculateWinPercentage(b) - calculateWinPercentage(a))
+                .slice(0, 5);
+
+            ['first', 'second', 'third'].forEach((position, index) => {
+                const element = document.getElementById(`${position}-winner`);
+                const player = sortedPlayers[index];
+                
+                if (player) {
+                    const [key, data] = player;
+                    const winPercentage = calculateWinPercentage(data).toFixed(1);
+                    
+                    element.style.display = 'flex';
+                    element.querySelector('.player-name').textContent = `${data.firstname} ${data.lastname}`;
+                    element.querySelector('.player-stats').textContent = `${winPercentage}% (${data.wins}W/${data.losses}L)`;
+                    element.querySelector('.player-avatar').textContent = data.firstname.charAt(0);
+                } else {
+                    element.style.display = 'none';
+                }
+            });
+
+            // Update posities 4 en 5
+            ['fourth', 'fifth'].forEach((position, index) => {
+                const element = document.getElementById(`${position}-winner`);
+                const player = sortedPlayers[index + 3];
+                
+                if (player) {
+                    const [key, data] = player;
+                    const winPercentage = calculateWinPercentage(data).toFixed(1);
+                    
+                    element.style.display = 'block';
+                    element.querySelector('.player-name').textContent = `${data.firstname} ${data.lastname}`;
+                    element.querySelector('.player-stats').textContent = `${winPercentage}% (${data.wins}W/${data.losses}L)`;
+                } else {
+                    element.style.display = 'none';
+                }
+            });
+        }
+
+        // Edit speler functies
+        function editPlayer(playerKey) {
+            currentPlayerKey = playerKey;
+            const player = players[playerKey];
+            document.getElementById('editFirstname').value = player.firstname;
+            document.getElementById('editLastname').value = player.lastname || '';
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editModalOverlay').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editModalOverlay').style.display = 'none';
+        }
+
+        function savePlayerEdit() {
+            const newFirstname = document.getElementById('editFirstname').value.trim();
+            const newLastname = document.getElementById('editLastname').value.trim();
+            
+            if (!newFirstname) {
+                alert("Vul een voornaam in!");
+                return;
+            }
+
+            const newKey = `${newFirstname.toLowerCase()}_${newLastname.toLowerCase()}`;
+            if (newKey !== currentPlayerKey && players[newKey]) {
+                alert("Deze speler bestaat al!");
+                return;
+            }
+
+            const oldData = {...players[currentPlayerKey]};
+            
+            // Update speler data
+            if (newKey !== currentPlayerKey) {
+                history.push({
+                    action: "edit",
+                    oldKey: currentPlayerKey,
+                    newKey: newKey,
+                    oldData: oldData
+                });
+                
+                delete players[currentPlayerKey];
+                players[newKey] = {
+                    ...oldData,
+                    firstname: newFirstname,
+                    lastname: newLastname
+                };
+            } else {
+                players[currentPlayerKey].firstname = newFirstname;
+                players[currentPlayerKey].lastname = newLastname;
+            }
+
+            saveLocalData();
+            updateTable();
+            closeEditModal();
+        }
+
+        // Functie om een sectie als afbeelding te exporteren
+        function exportSectionAsImage(selector) {
+            const section = document.querySelector(selector);
+            if (!section) return;
+
+            // Verberg de export knop tijdens het maken van de screenshot
+            const exportButton = section.querySelector('.export-buttons');
+            if (exportButton) {
+                exportButton.style.display = 'none';
+            }
+
+            html2canvas(section, {
+                backgroundColor: '#f0f2f5',
+                scale: 2, // Hogere resolutie
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // Toon de export knop weer
+                if (exportButton) {
+                    exportButton.style.display = 'flex';
+                }
+
+                const link = document.createElement('a');
+                const sectionName = selector.includes('late') ? 'laatkomers' : 'winnaars';
+                link.download = `wedstrijd_${sectionName}_${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Drag & drop functies
+        let draggedRow = null;
+
+        function handleDragStart(e) {
+            // Alleen toestaan om te slepen vanaf de drag handle of zijn parent cell
+            const dragHandle = e.target.closest('.drag-handle');
+            const row = e.target.closest('tr');
+            if (!dragHandle || !row) {
+                e.preventDefault();
+                return;
+            }
+            
+            draggedRow = row;
+            
+            // Zet de data transfer eigenschappen
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.dataset.playerKey);
+            
+            // Voeg een kleine vertraging toe voor visuele feedback
+            requestAnimationFrame(() => {
+                draggedRow.classList.add('dragging');
+                draggedRow.style.opacity = '0.5';
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const row = e.target.closest('tr');
+            if (!row || !draggedRow || row === draggedRow) return;
+
+            // Verwijder bestaande drop-target classes
+            document.querySelectorAll('.drop-target-top, .drop-target-bottom').forEach(el => {
+                el.classList.remove('drop-target-top', 'drop-target-bottom');
+            });
+
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                row.classList.add('drop-target-top');
+            } else {
+                row.classList.add('drop-target-bottom');
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (draggedRow) {
+                draggedRow.classList.remove('dragging');
+                draggedRow.style.opacity = '';
+                draggedRow = null;
+            }
+            document.querySelectorAll('.drop-target-top, .drop-target-bottom').forEach(el => {
+                el.classList.remove('drop-target-top', 'drop-target-bottom');
+            });
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetRow = e.target.closest('tr');
+            if (!targetRow || !draggedRow || targetRow === draggedRow) return;
+
+            const rect = targetRow.getBoundingClientRect();
+            const dropPosition = e.clientY < (rect.top + rect.height / 2) ? 'before' : 'after';
+            
+            // Update de order van alle spelers
+            const sortedPlayers = Object.entries(players).sort(([,a], [,b]) => a.order - b.order);
+            const draggedKey = draggedRow.dataset.playerKey;
+            const targetKey = targetRow.dataset.playerKey;
+            
+            const draggedIndex = sortedPlayers.findIndex(([key]) => key === draggedKey);
+            const targetIndex = sortedPlayers.findIndex(([key]) => key === targetKey);
+            
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // Bereken nieuwe positie
+            const newIndex = dropPosition === 'before' ? targetIndex : targetIndex + 1;
+            
+            // Verplaats het item
+            const [draggedItem] = sortedPlayers.splice(draggedIndex, 1);
+            sortedPlayers.splice(newIndex > draggedIndex ? newIndex - 1 : newIndex, 0, draggedItem);
+
+            // Update alle order waarden
+            sortedPlayers.forEach(([key, player], index) => {
+                players[key].order = index;
+            });
+
+            // Voeg toe aan geschiedenis
+            history.push({
+                action: "move",
+                player: { key: draggedKey },
+                direction: draggedIndex < targetIndex ? 'down' : 'up',
+                oldOrder: draggedIndex
+            });
+
+            saveLocalData();
+            updateTable();
+            handleDragEnd(e);
+        }
+
+        // Teams functionaliteit
+        let team1Players = [];
+        let team2Players = [];
+
+        // Update de speler selecties
+        function updatePlayerSelections() {
+            const team1Select = document.getElementById('team1-select');
+            const team2Select = document.getElementById('team2-select');
+            
+            // Reset opties
+            team1Select.innerHTML = '<option value="">Selecteer speler...</option>';
+            team2Select.innerHTML = '<option value="">Selecteer speler...</option>';
+            
+            // Beschikbare spelers ophalen en sorteren
+            const usedPlayers = new Set([...team1Players, ...team2Players]);
+            const availablePlayers = [];
+            
+            for (const [key, player] of Object.entries(players)) {
+                if (!usedPlayers.has(key)) {
+                    availablePlayers.push([key, player]);
+                }
+            }
+            
+            availablePlayers.sort((a, b) => {
+                const nameA = a[1].firstname + ' ' + a[1].lastname;
+                const nameB = b[1].firstname + ' ' + b[1].lastname;
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Opties toevoegen
+            availablePlayers.forEach(([key, player]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `${player.firstname} ${player.lastname}`;
+                team1Select.appendChild(option.cloneNode(true));
+                team2Select.appendChild(option);
+            });
+        }
+
+        // Event listeners voor speler selecties
+        document.getElementById('team1-select').addEventListener('change', function(e) {
+            const playerKey = e.target.value;
+            if (playerKey && team1Players.length < 5) {
+                team1Players.push(playerKey);
+                updateTeams();
+                updatePlayerSelections();
+            }
+            e.target.value = ''; // Reset selectie
+        });
+
+        document.getElementById('team2-select').addEventListener('change', function(e) {
+            const playerKey = e.target.value;
+            if (playerKey && team2Players.length < 5) {
+                team2Players.push(playerKey);
+                updateTeams();
+                updatePlayerSelections();
+            }
+            e.target.value = ''; // Reset selectie
+        });
+
+        // Update team weergave
+        function updateTeams() {
+            const team1Container = document.getElementById('team1-players');
+            const team2Container = document.getElementById('team2-players');
+            
+            // Update team headers met tellers
+            document.querySelector('#team1 h3').innerHTML = `Team 1 <span class="team-count">${team1Players.length}/5</span>`;
+            document.querySelector('#team2 h3').innerHTML = `Team 2 <span class="team-count">${team2Players.length}/5</span>`;
+            
+            team1Container.innerHTML = '';
+            team2Container.innerHTML = '';
+            
+            team1Players.forEach(playerKey => {
+                const player = players[playerKey];
+                const div = document.createElement('div');
+                div.className = 'team-player' + (modifiedPlayers.has(playerKey) ? ' modified' : '');
+                div.innerHTML = `
+                    ${player.firstname} ${player.lastname}
+                    <button class="btn-remove-player" onclick="removeFromTeam('team1', '${playerKey}')">×</button>
+                `;
+                team1Container.appendChild(div);
+            });
+            
+            team2Players.forEach(playerKey => {
+                const player = players[playerKey];
+                const div = document.createElement('div');
+                div.className = 'team-player' + (modifiedPlayers.has(playerKey) ? ' modified' : '');
+                div.innerHTML = `
+                    ${player.firstname} ${player.lastname}
+                    <button class="btn-remove-player" onclick="removeFromTeam('team2', '${playerKey}')">×</button>
+                `;
+                team2Container.appendChild(div);
+            });
+        }
+
+        // Verwijder speler uit team
+        function removeFromTeam(team, playerKey) {
+            if (team === 'team1') {
+                team1Players = team1Players.filter(key => key !== playerKey);
+            } else {
+                team2Players = team2Players.filter(key => key !== playerKey);
+            }
+            updateTeams();
+            updatePlayerSelections();
+        }
+
+        // Stel winnend team in
+        function setTeamWinner(winningTeam) {
+            const winners = winningTeam === 'team1' ? team1Players : team2Players;
+            const losers = winningTeam === 'team1' ? team2Players : team1Players;
+            
+            if (winners.length === 0 || losers.length === 0) {
+                alert('Beide teams moeten spelers bevatten om een winnaar te kunnen bepalen!');
+                return;
+            }
+
+            // Maak een enkele history entry voor alle wijzigingen
+            const teamAction = {
+                action: "team_result",
+                timestamp: Date.now(),
+                winners: winners.map(key => ({
+                    key,
+                    oldData: { ...players[key] }
+                })),
+                losers: losers.map(key => ({
+                    key,
+                    oldData: { ...players[key] }
+                }))
+            };
+
+            // Update statistieken
+            winners.forEach(playerKey => {
+                if (!players[playerKey].winHistory) {
+                    players[playerKey].winHistory = [];
+                }
+                players[playerKey].winHistory.push('win');
+                incrementField(playerKey, 'attendance', false);
+                incrementField(playerKey, 'wins', false);
+                modifiedPlayers.add(playerKey);
+            });
+            
+            losers.forEach(playerKey => {
+                if (!players[playerKey].winHistory) {
+                    players[playerKey].winHistory = [];
+                }
+                players[playerKey].winHistory.push('loss');
+                incrementField(playerKey, 'attendance', false);
+                incrementField(playerKey, 'losses', false);
+                modifiedPlayers.add(playerKey);
+            });
+
+            // Voeg de gecombineerde actie toe aan de geschiedenis
+            history.push(teamAction);
+            
+            saveLocalData();
+            updateTable();
+            updateStreakDisplay();
+
+            // Toon een bevestigingsmelding
+            const winningTeamName = winningTeam === 'team1' ? 'Team 1' : 'Team 2';
+            alert(`De statistieken zijn bijgewerkt: ${winningTeamName} heeft gewonnen!\n\nGebruik de 'Reset Teams' knop als je nieuwe teams wilt samenstellen.`);
+        }
+
+        // Reset teams
+        function resetTeams() {
+            if (team1Players.length > 0 || team2Players.length > 0) {
+                if (confirm("Weet je zeker dat je beide teams wilt leegmaken?")) {
+                    team1Players = [];
+                    team2Players = [];
+                    updateTeams();
+                    updatePlayerSelections();
+                }
+            }
+        }
+
+        // Initialiseer teams bij het laden van de pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePlayerSelections();
+        });
+
+        // Voeg deze nieuwe functies toe voor kolombreedtes
+        function initResizableTable() {
+            const table = document.querySelector('table');
+            const headers = table.querySelectorAll('th');
+            
+            headers.forEach((header, index) => {
+                // Maak alle kolommen resizable behalve de laatste
+                if (index < headers.length - 1) {
+                    const resizer = document.createElement('div');
+                    resizer.className = 'resizer';
+                    header.appendChild(resizer);
+                    
+                    let startX, startWidth, nextStartWidth;
+                    
+                    function startResizing(e) {
+                        startX = e.pageX;
+                        startWidth = header.offsetWidth;
+                        const nextHeader = header.nextElementSibling;
+                        if (nextHeader) {
+                            nextStartWidth = nextHeader.offsetWidth;
+                        }
+                        
+                        // Voeg resizing class toe voor visuele feedback
+                        resizer.classList.add('resizing');
+                        document.body.style.cursor = 'col-resize';
+                        
+                        // Voorkom selecteren tijdens resizen
+                        document.body.style.userSelect = 'none';
+                        
+                        window.addEventListener('mousemove', resize);
+                        window.addEventListener('mouseup', stopResizing);
+                    }
+                    
+                    function resize(e) {
+                        const diffX = e.pageX - startX;
+                        const newWidth = Math.max(40, startWidth + diffX); // Minimum breedte van 40px
+                        
+                        header.style.width = `${newWidth}px`;
+                        const cells = table.querySelectorAll(`td:nth-child(${index + 1})`);
+                        cells.forEach(cell => cell.style.width = `${newWidth}px`);
+                        
+                        // Pas ook de volgende kolom aan als die bestaat
+                        const nextHeader = header.nextElementSibling;
+                        if (nextHeader && nextStartWidth) {
+                            const nextWidth = Math.max(40, nextStartWidth - diffX);
+                            nextHeader.style.width = `${nextWidth}px`;
+                            const nextCells = table.querySelectorAll(`td:nth-child(${index + 2})`);
+                            nextCells.forEach(cell => cell.style.width = `${nextWidth}px`);
+                        }
+                    }
+                    
+                    function stopResizing() {
+                        resizer.classList.remove('resizing');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        
+                        window.removeEventListener('mousemove', resize);
+                        window.removeEventListener('mouseup', stopResizing);
+                        
+                        // Sla de nieuwe kolombreedtes op
+                        saveTableLayout();
+                    }
+                    
+                    resizer.addEventListener('mousedown', startResizing);
+                }
+            });
+        }
+
+        // Functie om de tabel layout op te slaan
+        function saveTableLayout() {
+            const table = document.querySelector('table');
+            const headers = table.querySelectorAll('th');
+            const layout = {};
+            
+            headers.forEach((header, index) => {
+                layout[`column${index}`] = header.style.width || window.getComputedStyle(header).width;
+            });
+            
+            localStorage.setItem('tableLayout', JSON.stringify(layout));
+        }
+
+        // Functie om de tabel layout te laden
+        function loadTableLayout() {
+            const savedLayout = localStorage.getItem('tableLayout');
+            if (savedLayout) {
+                const layout = JSON.parse(savedLayout);
+                const table = document.querySelector('table');
+                const headers = table.querySelectorAll('th');
+                
+                headers.forEach((header, index) => {
+                    const width = layout[`column${index}`];
+                    if (width) {
+                        header.style.width = width;
+                        const cells = table.querySelectorAll(`td:nth-child(${index + 1})`);
+                        cells.forEach(cell => cell.style.width = width);
+                    }
+                });
+            }
+        }
+
+        // Initialiseer de resizable kolommen bij het laden van de pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updatePlayerSelections();
+            initResizableTable();
+        });
+
+        // Help modal functies
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'block';
+            document.getElementById('editModalOverlay').style.display = 'block';
+        }
+
+        function closeHelpModal() {
+            document.getElementById("helpModal").style.display = "none";
+            document.getElementById("editModalOverlay").style.display = "none";
+        }
+
+        // Exporteer grafieken functie
+        async function exportCharts() {
+            const existingContainer = document.querySelector('.export-container');
+            if (existingContainer) {
+                document.body.removeChild(existingContainer);
+            }
+
+            const exportContainer = document.createElement('div');
+            exportContainer.className = 'export-container';
+            document.body.appendChild(exportContainer);
+
+            // Header sectie
+            const header = document.createElement('div');
+            header.className = 'export-section';
+            header.innerHTML = `
+                <h1 style="color: #1e88e5; font-size: 28px; margin-bottom: 10px; text-align: center;">Wedstrijd Statistieken Overzicht</h1>
+                <div style="color: #666; font-size: 14px; text-align: center; margin-bottom: 10px;">Gegenereerd op ${new Date().toLocaleString()} | Versie ${APP_VERSION}</div>
+                <div style="width: 100%; height: 4px; background: linear-gradient(to right, #1e88e5, #64b5f6); margin: 20px 0;"></div>
+            `;
+            exportContainer.appendChild(header);
+
+            // Speler van de maand sectie
+            const playerOfMonth = calculatePlayerOfMonth();
+            if (playerOfMonth) {
+                const playerOfMonthSection = document.createElement('div');
+                playerOfMonthSection.className = 'export-section';
+                playerOfMonthSection.style.background = 'linear-gradient(145deg, #e3f2fd, #ffffff)';
+                playerOfMonthSection.style.border = '2px solid #1e88e5';
+                playerOfMonthSection.innerHTML = `
+                    <h2 style="color: #1e88e5; text-align: center; margin-bottom: 20px;">🏆 Speler van de Maand</h2>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                        <div style="width: 80px; height: 80px; background: #1e88e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold;">
+                            ${playerOfMonth.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold; color: #1e88e5;">${playerOfMonth.name}</div>
+                            <div style="color: #666; margin-top: 5px;">
+                                Winstpercentage: ${playerOfMonth.winPercentage.toFixed(1)}%<br>
+                                Gespeelde wedstrijden: ${playerOfMonth.attendance}<br>
+                                Overwinningen: ${playerOfMonth.wins}<br>
+                                Te laat: ${playerOfMonth.late}x
+                            </div>
+                        </div>
+                    </div>
+                `;
+                exportContainer.appendChild(playerOfMonthSection);
+            }
+
+            // Statistieken grid
+            const statsGrid = document.createElement('div');
+            statsGrid.className = 'export-grid';
+
+            // Laatkomers sectie
+            const lateSection = document.createElement('div');
+            lateSection.className = 'export-section';
+            const lateChartId = `lateChart_${Date.now()}`;
+            lateSection.innerHTML = `
+                <h3 style="color: #1e88e5; text-align: center; margin-bottom: 20px;">Top 3 Te Laat</h3>
+                <div class="export-chart-container">
+                    <canvas id="${lateChartId}"></canvas>
+                </div>
+            `;
+            statsGrid.appendChild(lateSection);
+
+            // Winnaars sectie
+            const winnersSection = document.createElement('div');
+            winnersSection.className = 'export-section';
+            const winnersChartId = `winnersChart_${Date.now()}`;
+            winnersSection.innerHTML = `
+                <h3 style="color: #1e88e5; text-align: center; margin-bottom: 20px;">Top 5 Winnaars</h3>
+                <div class="export-chart-container">
+                    <canvas id="${winnersChartId}"></canvas>
+                </div>
+            `;
+            statsGrid.appendChild(winnersSection);
+            exportContainer.appendChild(statsGrid);
+
+            // Streaks sectie
+            const streaksContainer = document.createElement('div');
+            streaksContainer.className = 'export-streak-grid';
+
+            // Win streaks
+            const winStreaksSection = document.createElement('div');
+            winStreaksSection.className = 'export-streak-section';
+            winStreaksSection.innerHTML = `
+                <h3 style="color: #1e88e5; margin-bottom: 15px;">Winstreeks</h3>
+                ${createStreaksList(true)}
+            `;
+
+            // Loss streaks
+            const lossStreaksSection = document.createElement('div');
+            lossStreaksSection.className = 'export-streak-section';
+            lossStreaksSection.innerHTML = `
+                <h3 style="color: #1e88e5; margin-bottom: 15px;">Verliesstreeks</h3>
+                ${createStreaksList(false)}
+            `;
+
+            streaksContainer.appendChild(winStreaksSection);
+            streaksContainer.appendChild(lossStreaksSection);
+            exportContainer.appendChild(streaksContainer);
+
+            // Wacht tot de container is toegevoegd aan de DOM
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Maak de grafieken
+            createLateChart(lateChartId);
+            createWinnersChart(winnersChartId);
+
+            // Wacht tot de grafieken zijn gerenderd
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            try {
+                const canvas = await html2canvas(exportContainer, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    logging: true,
+                    onclone: function(clonedDoc) {
+                        const clonedContainer = clonedDoc.querySelector('.export-container');
+                        if (clonedContainer) {
+                            clonedContainer.style.position = 'static';
+                            clonedContainer.style.left = '0';
+                        }
+                    }
+                });
+
+                // Download de afbeelding
+                const link = document.createElement('a');
+                link.download = `wedstrijd_resultaten_${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Er is een fout opgetreden bij het exporteren. Probeer het opnieuw.');
+            } finally {
+                document.body.removeChild(exportContainer);
+            }
+        }
+
+        function createLateChart(chartId) {
+            const sortedPlayers = Object.entries(players)
+                .filter(([,player]) => player.attendance > 0 && player.late > 0)
+                .sort(([,a], [,b]) => (b.late / b.attendance) - (a.late / a.attendance))
+                .slice(0, 3);
+
+            const ctx = document.getElementById(chartId)?.getContext('2d');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedPlayers.map(([,p]) => `${p.firstname} ${p.lastname}`),
+                        datasets: [{
+                            label: 'Te laat percentage',
+                            data: sortedPlayers.map(([,p]) => (p.late / p.attendance * 100).toFixed(1)),
+                            backgroundColor: ['#f44336', '#ff9800', '#ffd700'],
+                            borderColor: ['#d32f2f', '#f57c00', '#ffc107'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: '#e0e0e0'
+                                },
+                                ticks: {
+                                    color: '#666'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Percentage te laat (%)',
+                                    color: '#666'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#666'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const player = sortedPlayers[context.dataIndex][1];
+                                        return [
+                                            `${context.formattedValue}% te laat`,
+                                            `${player.late}x te laat / ${player.attendance} aanwezig`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function createWinnersChart(chartId) {
+            const sortedPlayers = Object.entries(players)
+                .filter(([,player]) => player.attendance > 0)
+                .sort(([,a], [,b]) => calculateWinPercentage(b) - calculateWinPercentage(a))
+                .slice(0, 5);
+
+            const ctx = document.getElementById(chartId)?.getContext('2d');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedPlayers.map(([,p]) => `${p.firstname} ${p.lastname}`),
+                        datasets: [{
+                            label: 'Winstpercentage',
+                            data: sortedPlayers.map(([,p]) => calculateWinPercentage(p).toFixed(1)),
+                            backgroundColor: ['#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9'],
+                            borderColor: ['#388e3c', '#43a047', '#4caf50', '#66bb6a', '#81c784'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: '#e0e0e0'
+                                },
+                                ticks: {
+                                    color: '#666'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Winstpercentage (%)',
+                                    color: '#666'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#666'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const player = sortedPlayers[context.dataIndex][1];
+                                        return [
+                                            `${context.formattedValue}% winst`,
+                                            `${player.wins}W / ${player.losses}L (${player.attendance} gespeeld)`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function createStreaksList(isWinStreak) {
+            const streaks = Object.entries(players)
+                .map(([key, player]) => ({
+                    key,
+                    name: `${player.firstname} ${player.lastname}`,
+                    streak: isWinStreak ? calculateWinStreak(key) : calculateLossStreak(key),
+                    isActive: player.winHistory && 
+                            player.winHistory.length > 0 && 
+                            player.winHistory[player.winHistory.length - 1] === (isWinStreak ? 'win' : 'loss')
+                }))
+                .filter(player => player.streak > 0)
+                .sort((a, b) => b.streak - a.streak)
+                .slice(0, 5);
+
+            return streaks.length ? streaks.map(player => `
+                <div class="export-streak-item">
+                    <span>${player.name}</span>
+                    <span>${player.streak} wedstrijden${player.isActive ? ' (actief)' : ''}</span>
+                </div>
+            `).join('') : '<p>Nog geen streaks geregistreerd</p>';
+        }
+
+        // Functie om winstreeks bij te houden
+        function calculateWinStreak(playerKey) {
+            const player = players[playerKey];
+            if (!player.winHistory) {
+                player.winHistory = [];
+            }
+            
+            let currentStreak = 0;
+            let maxStreak = 0;
+            let currentActiveStreak = 0;
+            
+            // Bereken zowel de maximale als de huidige actieve winstreek
+            for (let i = 0; i < player.winHistory.length; i++) {
+                if (player.winHistory[i] === 'win') {
+                    currentStreak++;
+                    if (i === player.winHistory.length - 1) {
+                        currentActiveStreak = currentStreak;
+                    }
+                    maxStreak = Math.max(maxStreak, currentStreak);
+                } else {
+                    currentStreak = 0;
+                }
+            }
+            
+            // Retourneer de actieve winstreek als die er is, anders de maximale winstreek
+            return currentActiveStreak > 0 ? currentActiveStreak : maxStreak;
+        }
+
+        // Update de winstreeks wanneer een team wint
+        function updateWinStreak(winners, losers) {
+            winners.forEach(playerKey => {
+                if (!players[playerKey].winHistory) {
+                    players[playerKey].winHistory = [];
+                }
+                players[playerKey].winHistory.push('win');
+            });
+            
+            losers.forEach(playerKey => {
+                if (!players[playerKey].winHistory) {
+                    players[playerKey].winHistory = [];
+                }
+                players[playerKey].winHistory.push('loss');
+            });
+            
+            updateStreakDisplay();
+        }
+
+        // Update de weergave van winstreeks
+        function updateStreakDisplay() {
+            // Update winstreeks
+            const streaksContainer = document.getElementById('winstreaks');
+            const winStreaks = Object.entries(players)
+                .map(([key, player]) => ({
+                    key,
+                    name: `${player.firstname} ${player.lastname}`,
+                    streak: calculateWinStreak(key),
+                    isActive: player.winHistory && 
+                            player.winHistory.length > 0 && 
+                            player.winHistory[player.winHistory.length - 1] === 'win'
+                }))
+                .filter(player => player.streak > 0)
+                .sort((a, b) => b.streak - a.streak)
+                .slice(0, 5);
+
+            streaksContainer.innerHTML = winStreaks.length ? winStreaks.map(player => `
+                <div class="streak-item">
+                    <span class="streak-player">${player.name}</span>
+                    <span class="streak-count">${player.streak} wedstrijden${player.isActive ? ' (actief)' : ''}</span>
+                </div>
+            `).join('') : '<p>Nog geen winstreeks geregistreerd</p>';
+
+            // Update verliesstreeks
+            const lossStreaksContainer = document.getElementById('lossstreaks');
+            const lossStreaks = Object.entries(players)
+                .map(([key, player]) => ({
+                    key,
+                    name: `${player.firstname} ${player.lastname}`,
+                    streak: calculateLossStreak(key),
+                    isActive: player.winHistory && 
+                            player.winHistory.length > 0 && 
+                            player.winHistory[player.winHistory.length - 1] === 'loss'
+                }))
+                .filter(player => player.streak > 0)
+                .sort((a, b) => b.streak - a.streak)
+                .slice(0, 5);
+
+            lossStreaksContainer.innerHTML = lossStreaks.length ? lossStreaks.map(player => `
+                <div class="streak-item">
+                    <span class="streak-player">${player.name}</span>
+                    <span class="streak-count">${player.streak} wedstrijden${player.isActive ? ' (actief)' : ''}</span>
+                </div>
+            `).join('') : '<p>Nog geen verliesstreeks geregistreerd</p>';
+
+            // Update speler van de maand
+            const monthlyStatsContainer = document.getElementById('monthlyStats');
+            const playerOfMonth = calculatePlayerOfMonth();
+            
+            if (playerOfMonth) {
+                monthlyStatsContainer.innerHTML = `
+                    <div class="player-of-month-content">
+                        <div class="player-of-month-avatar">${playerOfMonth.name.charAt(0)}</div>
+                        <div class="player-of-month-info">
+                            <div class="player-of-month-name">${playerOfMonth.name}</div>
+                            <div class="player-of-month-stats">
+                                Winstpercentage: ${playerOfMonth.winPercentage.toFixed(1)}%<br>
+                                Gespeelde wedstrijden: ${playerOfMonth.attendance}<br>
+                                Overwinningen: ${playerOfMonth.wins}<br>
+                                Te laat: ${playerOfMonth.late}x
+                            </div>
+                            <div class="player-of-month-achievement">🏆 Beste Prestatie</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                monthlyStatsContainer.innerHTML = '<p>Nog geen speler van de maand beschikbaar.<br>Spelers hebben minimaal 4 wedstrijden nodig om in aanmerking te komen.</p>';
+            }
+        }
+
+        // Update de setTeamWinner functie om winstreeks bij te houden
+        const originalSetTeamWinner = setTeamWinner;
+        setTeamWinner = function(winningTeam) {
+            const winners = winningTeam === 'team1' ? team1Players : team2Players;
+            const losers = winningTeam === 'team1' ? team2Players : team1Players;
+            
+            originalSetTeamWinner(winningTeam);
+            updateWinStreak(winners, losers);
+        };
+
+        // Update de loadData functie om winHistory te initialiseren
+        const originalLoadData = loadData;
+        loadData = function() {
+            originalLoadData();
+            Object.keys(players).forEach(key => {
+                if (!players[key].winHistory) {
+                    players[key].winHistory = [];
+                }
+            });
+            updateStreakDisplay();
+        };
+
+        // Functie om verliesstreek bij te houden
+        function calculateLossStreak(playerKey) {
+            const player = players[playerKey];
+            if (!player.winHistory) {
+                player.winHistory = [];
+            }
+            
+            let currentStreak = 0;
+            let maxStreak = 0;
+            let currentActiveStreak = 0;
+            
+            // Bereken zowel de maximale als de huidige actieve verliesstreek
+            for (let i = 0; i < player.winHistory.length; i++) {
+                if (player.winHistory[i] === 'loss') {
+                    currentStreak++;
+                    if (i === player.winHistory.length - 1) {
+                        currentActiveStreak = currentStreak;
+                    }
+                    maxStreak = Math.max(maxStreak, currentStreak);
+                } else {
+                    currentStreak = 0;
+                }
+            }
+            
+            // Retourneer de actieve verliesstreek als die er is, anders de maximale verliesstreek
+            return currentActiveStreak > 0 ? currentActiveStreak : maxStreak;
+        }
+
+        // Functie om speler van de maand te bepalen
+        function calculatePlayerOfMonth() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            // Filter spelers met minimaal 4 wedstrijden deze maand
+            const qualifiedPlayers = Object.entries(players)
+                .map(([key, player]) => {
+                    const monthlyStats = {
+                        key,
+                        name: `${player.firstname} ${player.lastname}`,
+                        wins: player.wins,
+                        losses: player.losses,
+                        attendance: player.attendance,
+                        late: player.late,
+                        winPercentage: calculateWinPercentage(player)
+                    };
+                    return monthlyStats;
+                })
+                .filter(stats => stats.attendance >= 4) // Minimaal 4 wedstrijden
+                .sort((a, b) => {
+                    // Eerst sorteren op winstpercentage
+                    if (b.winPercentage !== a.winPercentage) {
+                        return b.winPercentage - a.winPercentage;
+                    }
+                    // Bij gelijk percentage, kijk naar minste keren te laat
+                    return a.late - b.late;
+                });
+
+            return qualifiedPlayers.length > 0 ? qualifiedPlayers[0] : null;
+        }
+
+        // Donatie gerelateerde functies
+        function showDonateOptions(event) {
+            if (event) event.preventDefault();
+            document.getElementById("donateModal").style.display = "block";
+            document.getElementById("editModalOverlay").style.display = "block";
+        }
+
+        function closeDonateModal() {
+            document.getElementById("donateModal").style.display = "none";
+            document.getElementById("editModalOverlay").style.display = "none";
+        }
+    </script>
+</body>
+</html>
