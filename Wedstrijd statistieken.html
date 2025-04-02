@@ -2178,6 +2178,86 @@
             background: #f5f5f5;
             border-radius: 4px;
         }
+
+        .update-notification {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: bottom 0.3s ease-in-out;
+            z-index: 1000;
+        }
+
+        .update-notification.show {
+            bottom: 20px;
+        }
+
+        .update-notification.minor {
+            background: #e3f2fd;
+        }
+
+        .update-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .changelog-modal .modal-content {
+            max-width: 600px;
+        }
+
+        .changelog-content {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .changelog-content h3 {
+            color: #1e88e5;
+            margin-bottom: 10px;
+        }
+
+        .changelog-content ul {
+            margin-bottom: 20px;
+        }
+
+        .changelog-content li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        #helpModal .modal-content {
+            max-width: 800px;
+        }
+
+        #helpModal h3 {
+            color: #1e88e5;
+            margin: 20px 0 10px;
+        }
+
+        #helpModal ul {
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+
+        #helpModal li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -2477,13 +2557,120 @@
     </footer>
 
     <script>
-        const APP_VERSION = '1.1.0';
+        const APP_VERSION = '1.0.0';
         let players = {};
         let history = [];
         let currentPlayerKey = '';
         let hasUnsavedChanges = false;
         let modifiedPlayers = new Set();
         let redoHistory = [];
+
+        // Versie controle en update systeem
+        const CURRENT_VERSION = '1.0.0';
+        const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 uur in milliseconden
+
+        function checkForUpdates() {
+            const lastUpdateCheck = localStorage.getItem('lastUpdateCheck');
+            const lastDismissedVersion = localStorage.getItem('lastDismissedVersion');
+            const now = Date.now();
+
+            if (!lastUpdateCheck || (now - parseInt(lastUpdateCheck)) > UPDATE_CHECK_INTERVAL) {
+                // Simuleer een versiecontrole (in productie zou dit een API-call zijn)
+                const serverVersion = APP_VERSION; // Dit zou normaal van de server komen
+                
+                if (serverVersion !== CURRENT_VERSION && serverVersion !== lastDismissedVersion) {
+                    showUpdateNotification(serverVersion);
+                }
+                
+                localStorage.setItem('lastUpdateCheck', now.toString());
+            }
+        }
+
+        function showUpdateNotification(newVersion) {
+            const isMinorUpdate = isMinorVersionUpdate(CURRENT_VERSION, newVersion);
+            
+            if (isMinorUpdate) {
+                showMinorUpdateNotification(newVersion);
+            } else {
+                showMajorUpdateNotification(newVersion);
+            }
+        }
+
+        function isMinorVersionUpdate(currentVersion, newVersion) {
+            const current = currentVersion.split('.').map(Number);
+            const next = newVersion.split('.').map(Number);
+            return current[0] === next[0] && current[1] === next[1];
+        }
+
+        function showMinorUpdateNotification(newVersion) {
+            const notification = document.createElement('div');
+            notification.className = 'update-notification minor';
+            notification.innerHTML = `
+                <div class="update-content">
+                    <span>Nieuwe update beschikbaar (${newVersion})</span>
+                    <button onclick="installUpdate('${newVersion}')" class="btn btn-success">Update</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 100);
+        }
+
+        function showMajorUpdateNotification(newVersion) {
+            const modal = document.createElement('div');
+            modal.className = 'modal update-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Nieuwe Update Beschikbaar!</h2>
+                    <p>Versie ${newVersion} is beschikbaar met nieuwe functies en verbeteringen.</p>
+                    <div class="update-actions">
+                        <button onclick="installUpdate('${newVersion}')" class="btn btn-success">Nu Updaten</button>
+                        <button onclick="postponeUpdate('${newVersion}')" class="btn btn-secondary">Later</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            document.getElementById('editModalOverlay').style.display = 'block';
+        }
+
+        function installUpdate(newVersion) {
+            // In productie zou dit de nieuwe versie downloaden en installeren
+            localStorage.setItem('lastDismissedVersion', null);
+            location.reload();
+        }
+
+        function postponeUpdate(version) {
+            localStorage.setItem('lastDismissedVersion', version);
+            document.querySelector('.update-modal')?.remove();
+            document.getElementById('editModalOverlay').style.display = 'none';
+        }
+
+        function showChangelog() {
+            const modal = document.createElement('div');
+            modal.className = 'modal changelog-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Wijzigingen</h2>
+                    <div class="changelog-content">
+                        <h3>Versie 1.0.0</h3>
+                        <ul>
+                            <li>Eerste release van de applicatie</li>
+                            <li>Progressive Web App (PWA) functionaliteit</li>
+                            <li>Offline modus</li>
+                            <li>Automatische updates</li>
+                            <li>Moderne gebruikersinterface</li>
+                        </ul>
+                    </div>
+                    <button onclick="closeChangelog()" class="btn btn-success">Sluiten</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            document.getElementById('editModalOverlay').style.display = 'block';
+        }
+
+        function closeChangelog() {
+            document.querySelector('.changelog-modal')?.remove();
+            document.getElementById('editModalOverlay').style.display = 'none';
+        }
 
         // Event listener voor het verlaten van de pagina
         window.addEventListener('beforeunload', function(e) {
@@ -2571,6 +2758,12 @@
             // Versie tonen in footer
             document.querySelector('footer .footer-content p:last-child').innerHTML = 
                 `Versie ${APP_VERSION} | Alle rechten voorbehouden. Ongeautoriseerd gebruik of distributie is niet toegestaan.`;
+            
+            // Check voor updates
+            checkForUpdates();
+            
+            // Stel periodieke update checks in
+            setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
         });
 
         // Toevoegen van een nieuwe speler
@@ -3645,7 +3838,58 @@
 
         // Help modal functies
         function showHelp() {
-            document.getElementById('helpModal').style.display = 'block';
+            const helpModal = document.getElementById('helpModal');
+            helpModal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Help & Informatie</h2>
+                    
+                    <h3>Basis Functies</h3>
+                    <ul>
+                        <li>Spelers toevoegen en beheren via het formulier bovenaan</li>
+                        <li>Aanwezigheid en te laat komen registreren per speler</li>
+                        <li>Teams samenstellen door spelers te selecteren</li>
+                        <li>Wedstrijdresultaten vastleggen met de team knoppen</li>
+                    </ul>
+
+                    <h3>Statistieken & Overzichten</h3>
+                    <ul>
+                        <li>Bekijk de top 3 laatkomers in het podium</li>
+                        <li>Zie de top 5 winnaars in de ranglijst</li>
+                        <li>Volg win- en verliesreeksen in het prestatie overzicht</li>
+                        <li>Bekijk de speler van de maand</li>
+                    </ul>
+
+                    <h3>Updates & Nieuwe Functies</h3>
+                    <ul>
+                        <li>De app controleert automatisch op updates</li>
+                        <li>Grote updates worden aangekondigd met een pop-up</li>
+                        <li>Kleine updates worden automatisch geïnstalleerd</li>
+                        <li>Bekijk de changelog voor alle wijzigingen</li>
+                    </ul>
+
+                    <h3>PWA Functionaliteit</h3>
+                    <ul>
+                        <li>Installeer de app op je apparaat via de "Installeer App" knop</li>
+                        <li>Gebruik de app offline</li>
+                        <li>Automatische synchronisatie wanneer online</li>
+                        <li>Snellere laadtijden door caching</li>
+                    </ul>
+
+                    <h3>Gegevensbeheer</h3>
+                    <ul>
+                        <li>Sla je gegevens regelmatig op</li>
+                        <li>Exporteer statistieken als afbeelding</li>
+                        <li>Maak back-ups van je gegevens</li>
+                        <li>Herstel eerdere acties met ongedaan maken/opnieuw</li>
+                    </ul>
+
+                    <div class="modal-buttons">
+                        <button onclick="showChangelog()" class="btn btn-primary">Bekijk Wijzigingen</button>
+                        <button onclick="closeHelpModal()" class="btn btn-success">Sluiten</button>
+                    </div>
+                </div>
+            `;
+            helpModal.style.display = 'block';
             document.getElementById('editModalOverlay').style.display = 'block';
         }
 

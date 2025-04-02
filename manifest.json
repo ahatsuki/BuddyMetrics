@@ -2,6 +2,7 @@
   "name": "Wedstrijd Statistieken",
   "short_name": "Wedstrijd Stats",
   "description": "Een app voor het bijhouden van wedstrijdstatistieken voor verschillende sporten",
+  "version": "1.0.0",
   "start_url": "./Wedstrijd statistieken.html",
   "display": "standalone",
   "background_color": "#f0f2f5",

@@ -22,30 +22,96 @@ Een interactieve webapplicatie voor het bijhouden van statistieken voor teamspor
 ## Installatie en Gebruik
 
 ### Webapplicatie
-1. Clone de repository:
-   ```
-   git clone https://github.com/jouw-gebruikersnaam/wedstrijd-statistieken.git
-   ```
+Volg deze stappen om de Wedstrijd Statistieken webapplicatie op je computer te installeren:
 
-2. Open de map:
-   ```
-   cd wedstrijd-statistieken
-   ```
+1. **Maak een nieuwe map aan op je bureaublad**
+   - Klik met de rechtermuisknop op je bureaublad.
+   - Selecteer 'Nieuw' en vervolgens 'Map'.
+   - Geef de map de naam `WedstrijdStatistieken`.
 
-3. Open het HTML-bestand in een webbrowser:
-   ```
-   open "Wedstrijd statistieken.html"
-   ```
+2. **Open de Opdrachtprompt (CMD)**
+   - Klik op de Start-knop (Windows-logo linksonder op je scherm).
+   - Typ `cmd` in de zoekbalk.
+   - Klik op 'Opdrachtprompt' om het te openen.
+
+3. **Kopieer en plak de volgende opdracht in de CMD**
+   - Typ `cd Desktop\WedstrijdStatistieken` en druk op Enter om naar de map te gaan die je zojuist hebt gemaakt.
+   - Kopieer de volgende opdracht:
+     ```
+     git clone https://github.com/jouw-gebruikersnaam/wedstrijd-statistieken.git
+     ```
+   - Plak het in de CMD door met de rechtermuisknop te klikken en 'Plakken' te selecteren, en druk op Enter.
+
+4. **Open de map in de Verkenner**
+   - Ga naar je bureaublad en open de map `WedstrijdStatistieken`.
+   - Dubbelklik op de map `wedstrijd-statistieken` die je zojuist hebt gedownload.
+
+5. **Open het HTML-bestand in een webbrowser**
+   - Zoek het bestand `Wedstrijd statistieken.html` in de map.
+   - Dubbelklik op het bestand om het in je standaard webbrowser te openen.
 
 ### Als PWA installeren
 De app kan worden geïnstalleerd als een Progressive Web App op verschillende apparaten:
 
-1. Open de app in een moderne browser (Chrome, Edge, Safari, Firefox)
-2. Klik op de "Installeer App" knop in de navigatiebalk
-3. Volg de instructies om de app te installeren
-4. De app is nu beschikbaar op je startscherm/bureaublad en werkt ook offline
+1. Open de app in een moderne browser (Chrome, Edge, Safari, Firefox).
+2. Klik op de "Installeer App" knop in de navigatiebalk.
+3. Volg de instructies om de app te installeren.
+4. De app is nu beschikbaar op je startscherm/bureaublad en werkt ook offline.
 
-> **Opmerking**: Voor volledige PWA-functionaliteit moeten de app-iconen in de icons/ map worden aangevuld met echte afbeeldingen.
+### Updates en Wijzigingen
+
+Wanneer er een nieuwe versie van de app beschikbaar is:
+
+1. **Update Melding**: 
+   - Je krijgt automatisch een pop-up melding te zien wanneer er een nieuwe versie beschikbaar is.
+   - De pop-up toont:
+     * Het nieuwe versienummer (bijvoorbeeld van 1.0.0 naar 1.1.0)
+     * Een korte samenvatting van de belangrijkste wijzigingen
+     * Knoppen voor "Nu Updaten" of "Later"
+   - Bij belangrijke updates zie je een rode stip op het menu-icoon tot je de update installeert
+
+2. **Soorten Updates**:
+   - **Kleine Updates** (bijvoorbeeld 1.1.0 naar 1.1.1):
+     * Kleine verbeteringen en bugfixes
+     * Worden automatisch geïnstalleerd bij het verversen van de app
+     * Je ziet een korte melding onderaan het scherm
+   - **Grote Updates** (bijvoorbeeld 1.1.0 naar 1.2.0):
+     * Nieuwe functies en belangrijke verbeteringen
+     * Tonen een grote pop-up met details
+     * Vragen om je toestemming voor installatie
+
+3. **Changelog Bekijken**:
+   - Klik op het menu-icoon rechtsboven in de app
+   - Selecteer "Changelog" om alle recente wijzigingen te bekijken
+   - Of bekijk [CHANGELOG.md](CHANGELOG.md) voor een volledig overzicht van alle updates
+   - Bij elke update zie je:
+     * Datum van de update
+     * Versienummer
+     * Lijst met nieuwe functies
+     * Lijst met verbeteringen
+     * Opgeloste problemen
+
+4. **Automatische Updates**:
+   - Als je de app als PWA hebt geïnstalleerd, worden updates automatisch gedownload
+   - Bij de volgende keer opstarten krijg je een melding dat de nieuwe versie klaar staat
+   - Je kunt kiezen om direct te updaten of dit later te doen
+   - Updates worden alleen gedownload via WiFi om je mobiele data te sparen
+
+> **Tip**: Het is aan te raden om updates direct te installeren voor de beste ervaring en nieuwste functies. Bij het uitstellen van updates krijg je elke 24 uur een herinnering totdat je de update installeert.
+
+### Waarom als PWA installeren?
+
+Het installeren van de Wedstrijd Statistieken app als een Progressive Web App (PWA) biedt verschillende voordelen:
+
+- **Automatische Updates**: De app wordt automatisch bijgewerkt wanneer je deze opent met een internetverbinding. Dit betekent dat je altijd de nieuwste functies en verbeteringen hebt zonder handmatig te hoeven updaten.
+
+- **Offline Toegang**: Eenmaal geïnstalleerd, kun je de app gebruiken zonder internetverbinding. Eerder geladen gegevens blijven beschikbaar en wijzigingen worden gesynchroniseerd zodra er weer verbinding is.
+
+- **Native App Ervaring**: De app gedraagt zich als een native applicatie op je apparaat, met een eigen pictogram op je startscherm of bureaublad.
+
+- **Meldingen voor Updates**: We werken aan een functie die je een melding geeft wanneer er een nieuwe update beschikbaar is. Je kunt dan kiezen om de update direct te installeren voor de beste ervaring.
+
+Door de app als PWA te installeren, profiteer je van een soepelere en meer geïntegreerde gebruikerservaring.
 
 ## Handleiding
 
