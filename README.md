@@ -86,6 +86,15 @@ Bijdragen zijn welkom! Als je een bug vindt of een verbetering wilt voorstellen,
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor een gedetailleerde lijst van wijzigingen.
 
+## Steun het Project
+
+Vind je de Wedstrijd Statistieken app nuttig en wil je de ontwikkeling ondersteunen? Je kunt ons op verschillende manieren steunen:
+
+- ☕ [Buy me a Coffee](https://buymeacoffee.com/AhatsukiStudio)
+- 💝 [PayPal Donatie](https://www.paypal.com/paypalme/AhatsukiStudio)
+
+Elke bijdrage wordt enorm gewaardeerd en helpt ons om de app te blijven verbeteren en nieuwe functies toe te voegen. Bedankt voor je steun! 🙏
+
 ## Licentie
 
 © 2025 Wedstrijd Statistieken App | Ontwikkeld door Ahatsuki Studio
